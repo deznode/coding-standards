@@ -1,3 +1,5 @@
+*[English](README.md) | [Portugues](README.pt.md) | [Kriolu](README.kea.md)*
+
 # Deznode Coding Standards
 
 Synthesized best-of-breed coding standards, tooling configurations, and development workflows extracted from two production projects. This repository provides reusable documentation, configuration templates, and Claude Code rules for bootstrapping new deznode projects.
