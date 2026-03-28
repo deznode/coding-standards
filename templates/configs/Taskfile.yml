@@ -1,0 +1,240 @@
+# Taskfile — project task runner
+# https://taskfile.dev
+#
+# Install: brew install go-task
+# Usage:   task <task-name>    (e.g., task dev, task test)
+# List:    task --list
+#
+# Customization:
+#   - Update vars to match your project directories
+#   - Add/remove prerequisite tools in the check task
+#   - Adjust docker-compose path in DOCKER_COMPOSE var
+
+version: "3"
+
+vars:
+  # TODO: Update these paths to match your project structure
+  API_DIR: apps/api
+  WEB_DIR: apps/web
+  DOCKER_COMPOSE: infrastructure/docker/docker-compose.yml
+
+tasks:
+  # ---------------------------------------------------------------------------
+  # Prerequisites
+  # ---------------------------------------------------------------------------
+
+  check:
+    desc: Check prerequisites -- detect missing tools with install instructions
+    silent: true
+    cmds:
+      - |
+        missing=0
+
+        check_tool() {
+          if command -v "$1" &> /dev/null; then
+            printf "  ✓ %-10s %s\n" "$1" "$(eval "$3")"
+          else
+            printf "  ✗ %-10s missing — install with: %s\n" "$1" "$2"
+            missing=$((missing + 1))
+          fi
+        }
+
+        echo "Checking prerequisites..."
+        echo ""
+        # TODO: Add or remove tools to match your stack
+        check_tool "docker"    "brew install --cask docker"   "docker --version | head -1"
+        check_tool "node"      "nvm install --lts"            "node --version"
+        check_tool "pnpm"      "npm install -g pnpm"          "pnpm --version"
+        check_tool "java"      "sdk install java"             "java --version 2>&1 | head -1"
+        check_tool "lefthook"  "brew install lefthook"        "lefthook version"
+        echo ""
+
+        if [ "$missing" -gt 0 ]; then
+          echo "⚠ $missing tool(s) missing. Install them and re-run: task check"
+          exit 1
+        else
+          echo "All prerequisites installed."
+        fi
+
+  # ---------------------------------------------------------------------------
+  # Setup
+  # ---------------------------------------------------------------------------
+
+  setup:
+    desc: Full-stack setup -- install dependencies, copy env templates, install hooks
+    cmds:
+      - task: setup:api
+      - task: setup:web
+      - task: setup:hooks
+
+  setup:hooks:
+    desc: Install git hooks via Lefthook
+    cmds:
+      - |
+        if command -v lefthook &> /dev/null; then
+          lefthook install
+          echo "Git hooks installed via Lefthook"
+        else
+          echo "Warning: lefthook is not installed. Install with: brew install lefthook"
+        fi
+
+  setup:api:
+    desc: API setup -- copy env template if missing
+    cmds:
+      - |
+        if [ ! -f {{.API_DIR}}/.env.local ]; then
+          cp {{.API_DIR}}/.env.local.example {{.API_DIR}}/.env.local
+          echo "Created {{.API_DIR}}/.env.local from template"
+        else
+          echo "{{.API_DIR}}/.env.local already exists, skipping"
+        fi
+
+  setup:web:
+    desc: Web setup -- copy env template if missing, install dependencies
+    cmds:
+      - |
+        if [ ! -f {{.WEB_DIR}}/.env.local ]; then
+          cp {{.WEB_DIR}}/.env.local.example {{.WEB_DIR}}/.env.local
+          echo "Created {{.WEB_DIR}}/.env.local from template"
+        else
+          echo "{{.WEB_DIR}}/.env.local already exists, skipping"
+        fi
+      - cd {{.WEB_DIR}} && pnpm install
+
+  # ---------------------------------------------------------------------------
+  # Development
+  # ---------------------------------------------------------------------------
+
+  dev:
+    desc: Full-stack dev -- start API + web in parallel
+    deps:
+      - dev:api
+      - dev:web
+
+  dev:api:
+    desc: Start API dev server
+    dir: "{{.API_DIR}}"
+    cmds:
+      # TODO: Adjust command for your backend framework
+      - ./gradlew bootRun --args='--spring.profiles.active=local'
+
+  dev:web:
+    desc: Start web dev server with Turbopack
+    dir: "{{.WEB_DIR}}"
+    env:
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+    cmds:
+      - pnpm run dev
+
+  dev:db:
+    desc: Start database only -- useful when backend is not needed
+    cmds:
+      - docker compose -f {{.DOCKER_COMPOSE}} up -d
+
+  # ---------------------------------------------------------------------------
+  # Testing
+  # ---------------------------------------------------------------------------
+
+  test:
+    desc: Run all tests -- API + web
+    cmds:
+      - task: test:api
+      - task: test:web
+
+  test:api:
+    desc: Run API tests
+    dir: "{{.API_DIR}}"
+    cmds:
+      - ./gradlew test
+
+  test:web:
+    desc: Run web lint, typecheck, and unit tests
+    dir: "{{.WEB_DIR}}"
+    cmds:
+      - pnpm run lint
+      - npx tsc --noEmit
+      - pnpm run test:unit
+
+  # ---------------------------------------------------------------------------
+  # Linting
+  # ---------------------------------------------------------------------------
+
+  lint:
+    desc: Run all linters -- ktlint + ESLint
+    cmds:
+      - task: lint:api
+      - task: lint:web
+
+  lint:api:
+    desc: Run Kotlin linter (ktlint)
+    dir: "{{.API_DIR}}"
+    cmds:
+      - ./gradlew ktlintCheck
+
+  lint:web:
+    desc: Run ESLint
+    dir: "{{.WEB_DIR}}"
+    cmds:
+      - pnpm run lint
+
+  # ---------------------------------------------------------------------------
+  # Build
+  # ---------------------------------------------------------------------------
+
+  build:
+    desc: Build all applications
+    cmds:
+      - task: build:api
+      - task: build:web
+
+  build:api:
+    desc: Build API
+    dir: "{{.API_DIR}}"
+    cmds:
+      # TODO: Adjust for your build tool (bootBuildImage, bootJar, etc.)
+      - ./gradlew bootBuildImage
+
+  build:web:
+    desc: Build web application
+    dir: "{{.WEB_DIR}}"
+    cmds:
+      - pnpm build
+
+  # ---------------------------------------------------------------------------
+  # Database
+  # ---------------------------------------------------------------------------
+
+  db:reset:
+    desc: Reset the database (WARNING -- destroys all data)
+    cmds:
+      - docker compose -f {{.DOCKER_COMPOSE}} down -v
+      - docker compose -f {{.DOCKER_COMPOSE}} up -d db
+
+  # ---------------------------------------------------------------------------
+  # Cleanup
+  # ---------------------------------------------------------------------------
+
+  stop:
+    desc: Stop all containers
+    cmds:
+      - docker compose -f {{.DOCKER_COMPOSE}} down
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - task: clean:api
+      - task: clean:web
+
+  clean:api:
+    desc: Clean API build artifacts
+    dir: "{{.API_DIR}}"
+    cmds:
+      - ./gradlew clean
+
+  clean:web:
+    desc: Clean web build artifacts
+    dir: "{{.WEB_DIR}}"
+    cmds:
+      # TODO: Add any other generated directories to clean
+      - rm -rf .next

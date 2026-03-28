@@ -1,0 +1,35 @@
+# EditorConfig — consistent coding style across editors and IDEs
+# https://editorconfig.org
+#
+# Usage: Copy to project root. Most editors auto-detect this file.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Kotlin / Kotlin Script — 4-space indent, disable ktlint wildcard-import rule
+[*.{kt,kts}]
+indent_size = 4
+ktlint_standard_no-wildcard-imports = disabled
+
+# Java — 4-space indent
+[*.{java}]
+indent_size = 4
+
+# Gradle build scripts — 4-space indent (Kotlin DSL)
+[*.{gradle.kts}]
+indent_size = 4
+
+# Markdown — trailing whitespace is significant (line breaks)
+[*.md]
+trim_trailing_whitespace = false
+
+# Makefiles — require tabs for indentation
+[Makefile]
+indent_style = tab

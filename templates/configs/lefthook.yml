@@ -1,0 +1,59 @@
+# Lefthook — Git hooks for pre-commit quality checks
+#
+# Install:
+#   brew install lefthook && lefthook install
+#   — or —
+#   pnpm add -D lefthook && npx lefthook install
+#
+# Customization:
+#   - Adjust glob paths to match your project structure
+#   - Remove hooks for stacks you don't use (e.g., ktlint/detekt for non-Kotlin)
+#   - Add a .gitleaks.toml if you need custom gitleaks rules
+
+pre-commit:
+  parallel: true
+  commands:
+    # Secret detection — prevent accidental credential commits
+    gitleaks:
+      run: gitleaks protect --staged --verbose
+      skip:
+        - merge
+        - rebase
+
+    # ESLint — lint and auto-fix staged TypeScript/JavaScript files
+    # TODO: Adjust glob path to match your frontend directory
+    eslint:
+      glob: "apps/web/**/*.{ts,tsx,js,jsx}"
+      root: "apps/web/"
+      run: npx eslint --max-warnings=0 --fix {staged_files}
+      stage_fixed: true
+
+    # Prettier — format staged code files
+    # TODO: Adjust glob path to match your frontend directory
+    prettier-code:
+      glob: "apps/web/**/*.{ts,tsx,js,jsx}"
+      root: "apps/web/"
+      run: npx prettier --write {staged_files}
+      stage_fixed: true
+
+    # Prettier — format staged asset files (JSON, CSS, YAML)
+    # TODO: Adjust glob path to match your frontend directory
+    prettier-assets:
+      glob: "apps/web/**/*.{json,css,yml,yaml}"
+      root: "apps/web/"
+      run: npx prettier --write {staged_files}
+      stage_fixed: true
+
+    # ktlint — Kotlin code style checks
+    # TODO: Adjust glob path to match your backend directory
+    ktlint:
+      glob: "apps/api/**/*.{kt,kts}"
+      root: "apps/api/"
+      run: ./gradlew ktlintCheck
+
+    # Detekt — Kotlin static analysis
+    # TODO: Adjust glob path to match your backend directory
+    detekt:
+      glob: "apps/api/**/*.{kt,kts}"
+      root: "apps/api/"
+      run: ./gradlew detekt

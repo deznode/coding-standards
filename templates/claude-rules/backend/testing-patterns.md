@@ -1,0 +1,121 @@
+---
+paths: apps/api/**
+---
+
+# Testing Patterns
+
+> Full reference: `docs/backend/06-testing.md`
+
+## Integration Test Setup
+
+```kotlin
+@ActiveProfiles("test")
+@SpringBootTest
+@AutoConfigureMockMvc
+class ResourceControllerTest {
+    @Autowired private lateinit var mockMvc: MockMvc
+    @Autowired private lateinit var jsonMapper: JsonMapper  // NOT ObjectMapper
+    @Autowired private lateinit var repository: ResourceRepository
+
+    @BeforeEach
+    fun setup() { repository.deleteAll() }
+}
+```
+
+## MockMvc Pattern
+
+Chain dots on same line as closing paren (ktlint rule):
+
+```kotlin
+mockMvc
+    .perform(
+        post("/api/v1/resources")
+            .with(authAs("user-123"))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(jsonMapper.writeValueAsString(request)),
+    ).andExpect(status().isCreated)
+    .andExpect(jsonPath("$.status").value(201))
+    .andExpect(jsonPath("$.data.id").isNotEmpty)
+```
+
+## Auth Mocking
+
+```kotlin
+private fun authAs(userId: String) =
+    authentication(
+        UsernamePasswordAuthenticationToken(userId, null, emptyList())
+    )
+
+private fun authAsAdmin(userId: String) =
+    authentication(
+        UsernamePasswordAuthenticationToken(
+            userId, null, listOf(SimpleGrantedAuthority("ROLE_ADMIN")),
+        )
+    )
+```
+
+## FK-Safe Cleanup
+
+When tests touch multiple tables, delete in FK-safe order:
+
+```kotlin
+@Autowired private lateinit var jdbcTemplate: JdbcTemplate
+
+@BeforeEach
+fun cleanup() {
+    jdbcTemplate.execute("DELETE FROM child_table")      // Children first
+    jdbcTemplate.execute("DELETE FROM event_publication") // Event table
+    jdbcTemplate.execute("DELETE FROM parent_table")      // Parents last
+}
+```
+
+## Testcontainers
+
+In `application-test.yml`:
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:tc:postgresql:16.0:///?TC_DAEMON=true
+```
+
+No setup code needed -- Spring Boot auto-configures from `jdbc:tc:` prefix. `TC_DAEMON=true` keeps the container alive across tests.
+
+## @MockitoBean
+
+```kotlin
+@MockitoBean
+private lateinit var externalService: ExternalService
+
+@Test
+fun `should call external service`() {
+    whenever(externalService.process(any())).thenReturn(Result.success())
+    // ... perform request ...
+    verify(externalService).process(any())
+}
+```
+
+## Event Testing
+
+Events run AFTER_COMMIT. Poll for async results:
+
+```kotlin
+private fun awaitResult(id: UUID, timeout: Duration = Duration.ofSeconds(10)): Result {
+    val deadline = Instant.now().plus(timeout)
+    while (Instant.now().isBefore(deadline)) {
+        val result = resultRepository.findBySourceId(id)
+        if (result != null) return result
+        Thread.sleep(100)
+    }
+    throw AssertionError("Result not found within $timeout")
+}
+```
+
+## Test Type Summary
+
+| Type | Annotation | Speed |
+|------|-----------|-------|
+| Integration | `@SpringBootTest` + `@AutoConfigureMockMvc` | Slow |
+| Controller slice | `@WebMvcTest` | Fast |
+| Repository slice | `@DataJpaTest` + `@ActiveProfiles("test")` | Medium |
+| Modularity | Plain JUnit (`ApplicationModules.of(...).verify()`) | Fast |
