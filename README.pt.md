@@ -1,8 +1,8 @@
-*[English](README.md) | [Portugues](README.pt.md) | [Kriolu](README.kea.md)*
+[🇬🇧 English](README.md) · [🇨🇻 Portugues](README.pt.md)
 
 # Deznode Coding Standards
 
-Normas de desenvolvimento, configuracoes de ferramentas e fluxos de trabalho extraidos de projetos em producao. Este repositorio fornece documentacao reutilizavel, templates de configuracao e regras para Claude Code, para iniciar novos projetos deznode.
+Normas de desenvolvimento, configuracoes de ferramentas e fluxos de trabalho para projetos deznode. Este repositorio fornece documentacao reutilizavel, templates de configuracao e regras para Claude Code, para iniciar novos projetos.
 
 ## Stack Tecnologica
 
@@ -17,9 +17,9 @@ Normas de desenvolvimento, configuracoes de ferramentas e fluxos de trabalho ext
 
 1. **Criar o repositorio** e clonar localmente.
 
-2. **Adicionar este repo como submodulo** (ou clonar ao lado do projeto):
+2. **Clonar este repo** ao lado do projeto:
    ```bash
-   git submodule add https://github.com/deznode/coding-standards.git coding-standards
+   git clone https://github.com/deznode/coding-standards.git
    ```
 
 3. **Copiar configuracoes do editor e ferramentas**:
@@ -92,6 +92,3 @@ Estas normas sao documentos vivos. Para propor uma alteracao:
 3. **Referenciar evidencias** — linkar incidentes, discussoes de code review ou praticas da industria.
 4. **Dar tempo para revisao** — as alteracoes afetam todos os projetos. Dar pelo menos uma semana para comentarios.
 
-## Origem
-
-Normas de desenvolvimento testadas em producao, extraidas de projetos full-stack (Kotlin/Spring Boot 4 + Next.js 16).

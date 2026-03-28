@@ -1,8 +1,8 @@
-*[English](README.md) | [Portugues](README.pt.md) | [Kriolu](README.kea.md)*
+[🇬🇧 English](README.md) · [🇨🇻 Portugues](README.pt.md)
 
 # Deznode Coding Standards
 
-Synthesized best-of-breed coding standards, tooling configurations, and development workflows extracted from two production projects. This repository provides reusable documentation, configuration templates, and Claude Code rules for bootstrapping new deznode projects.
+Coding standards, tooling configurations, and development workflows for deznode projects. This repository provides reusable documentation, configuration templates, and Claude Code rules for bootstrapping new projects.
 
 ## Tech Stack Covered
 
@@ -79,9 +79,9 @@ cp -r templates/claude-hooks/* /path/to/project/.claude/hooks/
 
 1. **Create the project repository** and clone it locally.
 
-2. **Add this repo as a submodule** (or clone it alongside your project):
+2. **Clone this repo** alongside your project:
    ```bash
-   git submodule add https://github.com/deznode/coding-standards.git coding-standards
+   git clone https://github.com/deznode/coding-standards.git
    ```
 
 3. **Copy editor and tooling configs**:
@@ -203,6 +203,3 @@ Review this standard **quarterly** to:
 - Update version references (Spring Boot, Next.js, Tailwind, etc.) as the stack evolves.
 - Incorporate feedback from developers using the standard.
 
-## Origin
-
-Battle-tested coding standards distilled from production full-stack projects (Kotlin/Spring Boot 4 + Next.js 16).
