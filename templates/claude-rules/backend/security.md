@@ -6,17 +6,11 @@ paths: apps/api/**
 
 > Full reference: `docs/backend/05-security.md`
 
-## Exception Hierarchy
+## Error Handling
 
-| Exception | HTTP Status | Use Case |
-|-----------|------------|----------|
-| Jakarta validation | 400 | `@Valid` bean validation failures |
-| `IllegalArgumentException` | 400 | Invalid parameter values |
-| `ResourceNotFoundException` | 404 | Entity not found by ID/slug |
-| `BusinessException` | 422 | Business rule violations |
-| `RateLimitExceededException` | 429 | Rate limit exceeded |
+> Full reference: `docs/backend/07-error-handling.md`
 
-Throw domain exceptions in service layer. `GlobalExceptionHandler` (`@ControllerAdvice`) converts to `ErrorResponse`/`ValidationErrorResponse`.
+Each module defines a `sealed class {Module}Exception` with nested subtypes. Module-specific `@RestControllerAdvice` at `@Order(1)` handles them with exhaustive `when`. Global handler at `@Order(100)` catches generic exceptions. Response format: `ProblemDetail` (RFC 9457).
 
 ## JWT Authentication
 

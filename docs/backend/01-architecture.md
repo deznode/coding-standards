@@ -23,11 +23,15 @@ Each module follows the **facade + internal** package layout for strong encapsul
 └── internal/
     ├── domain/
     │   ├── model/               # Entities, value objects
-    │   └── repository/          # Spring Data JPA repositories
+    │   ├── repository/          # Spring Data JPA repositories
+    │   ├── {Module}Exception.kt # Sealed exception hierarchy (see 07-error-handling.md)
+    │   └── {Action}{Resource}Command.kt  # Domain commands (see 02-api-design.md)
     ├── application/             # Internal services (entity-returning, used by controllers)
     └── infrastructure/
         ├── api/
         │   ├── {Controller}.kt  # REST controllers (use internal application services)
+        │   ├── {Module}Mapper.kt        # Request/Command/Response mapper object
+        │   ├── {Module}ExceptionHandler.kt  # @RestControllerAdvice @Order(1)
         │   └── dto/             # HTTP request/response DTOs
         └── event/               # Event handlers (@ApplicationModuleListener)
 ```
@@ -58,10 +62,10 @@ The `shared/` module is the shared kernel -- all modules may depend on it freely
 
 ```
 shared/
-├── api/             # ApiResult, PagedApiResult, ErrorResponse, shared DTOs
+├── api/             # ApiResult, PagedApiResult, shared DTOs
 ├── domain/          # CreatableEntity, AuditableEntity base classes
 ├── events/          # DomainEvent, ApplicationModuleEvent interfaces
-├── exception/       # ResourceNotFoundException, GlobalExceptionHandler
+├── exception/       # GlobalExceptionHandler (@Order(100) fallback)
 ├── config/          # Cross-cutting config (caching, JPA auditing)
 ├── service/         # Shared services
 └── util/            # Utility functions
@@ -246,11 +250,12 @@ class ModularityTests {
 ## Request Flow
 
 ```
-Controller -> Service -> Repository
-     |            |
-   DTO  <->    Entity
+Request DTO -> Mapper.toCommand() -> Command -> Service -> Repository
+                                                    |
+Response DTO <- Mapper.toResponse() <----------  Entity
 ```
 
-- Controllers handle HTTP, validation, and DTO conversion
-- Services contain business logic and orchestrate repositories
+- Controllers handle HTTP, validation, and delegate to Mapper + Service
+- Mappers convert between HTTP DTOs and domain objects (Commands, Entities)
+- Services accept Commands, contain business logic, and orchestrate repositories
 - Repositories abstract persistence concerns

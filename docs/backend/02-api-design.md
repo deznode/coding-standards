@@ -52,33 +52,9 @@ return PagedApiResult.from(page)
 
 ## Error Response Format
 
-All errors are wrapped in `ErrorResponse` or `ValidationErrorResponse`:
+Use `ProblemDetail` (RFC 9457) for all error responses. See [Error Handling & Exception Design](07-error-handling.md) for sealed exception hierarchies, ProblemDetail format, and ordered `@ControllerAdvice` handlers.
 
-```kotlin
-data class ErrorResponse(
-    val error: String,
-    val message: String,
-    val timestamp: LocalDateTime = LocalDateTime.now(),
-    val path: String? = null,
-    val status: Int,
-)
-
-data class ValidationErrorResponse(
-    val error: String,
-    val details: List<FieldError>,
-    val timestamp: LocalDateTime = LocalDateTime.now(),
-    val path: String? = null,
-    val status: Int = 400,
-) {
-    data class FieldError(
-        val field: String,
-        val rejectedValue: Any?,
-        val message: String,
-    )
-}
-```
-
-> **Alternative**: RFC 9457 `ProblemDetail` is supported by Spring Boot and can be used as an alternative error response format via `@ControllerAdvice` returning `ProblemDetail` instances.
+> **Legacy**: Custom `ErrorResponse`/`ValidationErrorResponse` wrappers are still supported but `ProblemDetail` is preferred for new modules.
 
 ---
 
@@ -144,8 +120,9 @@ class ProductController(
     fun create(
         @Valid @RequestBody request: CreateProductRequest,
     ): ApiResult<ProductDto> {
-        val product = service.create(request)
-        return ApiResult(data = product, status = HttpStatus.CREATED.value())
+        val command = ProductMapper.toCommand(request)
+        val product = service.create(command)
+        return ApiResult(data = ProductMapper.toResponse(product), status = HttpStatus.CREATED.value())
     }
 
     @PutMapping("/{id}")
@@ -292,24 +269,26 @@ Every module follows this structure:
 
 ```
 {module}/
-├── api/              # Controllers, request/response DTOs
+├── api/              # Controllers, request/response DTOs, mappers
 │   ├── ProductController.kt
 │   ├── AdminProductController.kt
 │   ├── CreateProductRequest.kt
-│   └── ProductDto.kt
-├── domain/           # Entities, services, mapper extensions
+│   ├── ProductResponse.kt
+│   └── ProductMapper.kt
+├── domain/           # Entities, commands, exceptions, services
 │   ├── Product.kt
 │   ├── ProductVariant.kt
 │   ├── ProductService.kt
-│   └── Mapper.kt
+│   ├── CreateProductCommand.kt
+│   └── ProductException.kt
 ├── repository/       # JPA repositories
 │   └── ProductRepository.kt
 └── services/         # Secondary/cross-cutting services
     └── SearchService.kt
 ```
 
-- **api/**: HTTP layer -- controllers, request DTOs, response DTOs
-- **domain/**: Business logic -- entities, services, extension function mappers
+- **api/**: HTTP layer -- controllers, request/response DTOs, mapper objects
+- **domain/**: Business logic -- entities, services, commands, sealed exceptions
 - **repository/**: Data access -- Spring Data JPA interfaces
 - **services/**: Additional services (search, caching, etc.)
 
@@ -319,7 +298,101 @@ Every module follows this structure:
 
 - **HTTP DTOs** belong in the API layer (`api/` or `internal/infrastructure/api/dto/`), never in the domain layer
 - **Cross-module DTOs** go in the module's base package for public access
-- Response DTOs: use `companion object { fun from(entity): ResponseDto }` factory
+- Response DTOs: use `companion object { fun from(entity): ResponseDto }` factory or a Mapper object (see below)
 - Request DTOs: nullable fields + Jakarta Validation
+- Command objects: validated domain types, used between controller and service layer (see below)
 - Partial updates: merge nullable request fields with current entity values
 - Cross-context data: always use facade service calls returning public DTOs (never inject repositories from other modules)
+
+---
+
+## Command Objects
+
+**Why separate Commands from Request DTOs?** Request DTOs are HTTP-layer concerns with nullable strings, Jakarta validation annotations, and raw types (`BigDecimal`, `String`). Commands are domain-layer objects with validated, non-nullable domain types (`Money`, `UnitOfMeasure`, `UUID`). This separation keeps the domain layer free of HTTP/validation concerns.
+
+### Naming Convention
+
+`{Action}{Resource}Command` (e.g., `CreateProductCommand`, `UpdateTransactionCommand`)
+
+### Example
+
+```kotlin
+// domain/CreateProductCommand.kt
+data class CreateProductCommand(
+    val sku: String,
+    val name: String,
+    val description: String? = null,
+    val price: Money,
+    val cost: Money? = null,
+    val taxRate: BigDecimal? = null,
+    val stockQuantity: Int = 0,
+    val unit: UnitOfMeasure = UnitOfMeasure.UNIT,
+)
+```
+
+Compare with the Request DTO for the same operation:
+
+```kotlin
+// api/CreateProductRequest.kt
+data class CreateProductRequest(
+    @field:NotBlank(message = "SKU is required")
+    val sku: String? = null,
+
+    @field:NotBlank(message = "Name is required")
+    val name: String? = null,
+
+    @field:NotNull(message = "Price is required")
+    @field:DecimalMin(value = "0.01")
+    val price: BigDecimal? = null,
+
+    @field:Min(value = 0, message = "Stock quantity cannot be negative")
+    val stockQuantity: Int = 0,
+)
+```
+
+Commands live in `domain/` or `application/` -- they are domain-level concepts, not HTTP-layer.
+
+---
+
+## Mapper Objects
+
+**Why dedicated Mapper objects?** When the mapping involves both Request-to-Command and Entity-to-Response transformations, a dedicated Mapper object provides a single cohesive location for all conversions. Extension functions (see `03-kotlin-conventions.md`) remain valid for simple Entity-to-DTO mappings, but Mapper objects are preferred when Commands are involved.
+
+### Convention
+
+`object {Module}Mapper` as a Kotlin singleton in the `api/` package:
+
+```kotlin
+// api/ProductMapper.kt
+object ProductMapper {
+
+    fun toCommand(request: CreateProductRequest): CreateProductCommand =
+        CreateProductCommand(
+            sku = request.sku!!,
+            name = request.name!!,
+            price = Money.cve(request.price!!),
+            stockQuantity = request.stockQuantity,
+        )
+
+    fun toResponse(product: Product): ProductResponse =
+        ProductResponse(
+            id = product.id,
+            sku = product.sku,
+            name = product.name,
+            price = product.price,
+            stockQuantity = product.stockQuantity,
+            createdAt = product.createdAt,
+        )
+}
+```
+
+### Request Flow
+
+```
+Request DTO (api/) --[Mapper.toCommand()]--> Command (domain/) --[Service]--> Entity --[Mapper.toResponse()]--> Response DTO (api/)
+```
+
+- Mappers live in `api/` since they bridge between HTTP DTOs and domain objects
+- Controller calls `Mapper.toCommand(request)` before passing to the service
+- Controller calls `Mapper.toResponse(entity)` before returning to the client
+- Services accept Commands and return Entities -- they never see Request/Response DTOs

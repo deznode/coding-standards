@@ -21,15 +21,7 @@ return PagedApiResult.from(page)
 
 ## Error Responses
 
-Errors use `ErrorResponse` or `ValidationErrorResponse` via `GlobalExceptionHandler`:
-
-| Exception | HTTP Status | Response Type |
-|-----------|-------------|---------------|
-| `ResourceNotFoundException` | 404 | `ErrorResponse` |
-| `BusinessException` | 422 | `ErrorResponse` |
-| `RateLimitExceededException` | 429 | `ErrorResponse` |
-| Jakarta validation failures | 400 | `ValidationErrorResponse` |
-| `IllegalArgumentException` | 400 | `ErrorResponse` |
+Use `ProblemDetail` (RFC 9457) via module-specific `@RestControllerAdvice` handlers. See `error-handling.md` rule for details.
 
 ## HTTP Methods and Status Codes
 
@@ -102,8 +94,38 @@ data class CreateResourceRequest(
 )
 ```
 
+## Command Objects
+
+Separate Request DTOs (HTTP layer, nullable, `@Valid`) from Commands (domain layer, non-nullable domain types):
+
+```kotlin
+// Request DTO -- api/ package, Jakarta validation
+data class CreateProductRequest(
+    @field:NotBlank val name: String? = null,
+    @field:DecimalMin("0.01") val price: BigDecimal? = null,
+)
+
+// Command -- domain/ package, domain types
+data class CreateProductCommand(val name: String, val price: Money)
+```
+
+## Mapper Objects
+
+`object {Module}Mapper` in `api/` package bridges HTTP and domain layers:
+
+```kotlin
+object ProductMapper {
+    fun toCommand(request: CreateProductRequest): CreateProductCommand = ...
+    fun toResponse(product: Product): ProductResponse = ...
+}
+```
+
+Flow: `Request DTO -> Mapper.toCommand() -> Command -> Service -> Entity -> Mapper.toResponse() -> Response DTO`
+
 ## DTO Placement
 
 - HTTP DTOs: `internal/infrastructure/api/dto/` (never in domain layer)
+- Commands: `internal/domain/` or `internal/application/`
+- Mappers: `internal/infrastructure/api/`
 - Cross-module DTOs: module's base package (public access)
-- Response DTOs: use `companion object { fun from(entity): Dto }` factory
+- Response DTOs: use `companion object { fun from(entity): Dto }` factory or Mapper object

@@ -122,8 +122,9 @@ cp -r templates/claude-hooks/* /path/to/project/.claude/hooks/
 | [API Design](docs/backend/02-api-design.md) | ApiResult wrappers, controllers, HTTP patterns, validation |
 | [Kotlin Conventions](docs/backend/03-kotlin-conventions.md) | Jackson 3.x, kotlin-logging, transactions, naming conventions |
 | [Database Patterns](docs/backend/04-database-patterns.md) | Flyway migrations, entities, UUID keys, JSONB, full-text search |
-| [Security](docs/backend/05-security.md) | JWT authentication, exception hierarchy, rate limiting |
-| [Testing](docs/backend/06-testing.md) | Integration tests, MockMvc, Testcontainers, modularity tests |
+| [Security](docs/backend/05-security.md) | JWT authentication, authorization, rate limiting |
+| [Testing](docs/backend/06-testing.md) | Integration tests, MockMvc, MockK, Testcontainers, test fixtures |
+| [Error Handling](docs/backend/07-error-handling.md) | Sealed exception hierarchies, ProblemDetail (RFC 9457), ordered @ControllerAdvice |
 
 ### Frontend
 

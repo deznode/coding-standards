@@ -189,20 +189,74 @@ No additional setup needed -- Spring Boot auto-configures Testcontainers from th
 
 ---
 
-## @MockitoBean
+## MockK (Preferred Mocking Library)
 
-`@MockitoBean` replaces all matching beans in the context:
+**Why MockK over Mockito?** MockK is the idiomatic Kotlin mocking library with first-class support for coroutines, extension functions, and Kotlin-specific features like `object` singletons. The `springmockk` library provides `@MockkBean` as a drop-in replacement for `@MockitoBean`.
+
+### Basic Setup (Unit Tests -- No Spring Context)
 
 ```kotlin
-@MockitoBean
+class OrderServiceTest {
+    private val orderRepository = mockk<OrderRepository>()
+    private val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
+    private val service = OrderService(orderRepository, eventPublisher)
+
+    @AfterEach
+    fun tearDown() = clearAllMocks()
+}
+```
+
+### @MockkBean (Integration / Slice Tests)
+
+`@MockkBean` replaces all matching beans in the Spring context:
+
+```kotlin
+@MockkBean
 private lateinit var paymentGateway: PaymentGateway
 
-@MockitoBean
+@MockkBean
 private lateinit var emailService: EmailService
+```
 
+### Stubbing and Verification
+
+```kotlin
+// Stubbing
+every { paymentGateway.charge(any()) } returns PaymentResult.success()
+every { repository.findById(any()) } returns Optional.of(product)
+
+// Verification
+verify { emailService.sendOrderConfirmation(any()) }
+verify(exactly = 1) { repository.save(any()) }
+```
+
+### Argument Capture with slot<T>()
+
+```kotlin
+val userSlot = slot<AppUser>()
+every { userRepository.save(capture(userSlot)) } answers { userSlot.captured }
+
+// After the call:
+assertThat(userSlot.captured.email).isEqualTo("test@example.com")
+assertThat(userSlot.captured.role).isEqualTo(Role.OWNER)
+```
+
+### Relaxed Mocks
+
+Use `relaxed = true` for fire-and-forget dependencies like event publishers:
+
+```kotlin
+private val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
+```
+
+Relaxed mocks return sensible defaults for all calls without requiring `every { }` stubs.
+
+### Full Integration Test Example
+
+```kotlin
 @Test
 fun `createOrder should send confirmation email`() {
-    whenever(paymentGateway.charge(any())).thenReturn(PaymentResult.success())
+    every { paymentGateway.charge(any()) } returns PaymentResult.success()
 
     mockMvc
         .perform(
@@ -212,7 +266,76 @@ fun `createOrder should send confirmation email`() {
                 .content(jsonMapper.writeValueAsString(request)),
         ).andExpect(status().isCreated)
 
-    verify(emailService).sendOrderConfirmation(any())
+    verify { emailService.sendOrderConfirmation(any()) }
+}
+```
+
+### Mockito to MockK Migration Reference
+
+| Concept | Mockito | MockK |
+|---------|---------|-------|
+| Mock creation | `mock<T>()` | `mockk<T>()` |
+| Spring bean mock | `@MockitoBean` | `@MockkBean` |
+| Stubbing | `whenever(x).thenReturn(y)` | `every { x } returns y` |
+| Verification | `verify(x).method()` | `verify { x.method() }` |
+| Argument capture | `ArgumentCaptor<T>` | `slot<T>()` + `capture()` |
+| Cleanup | `@ExtendWith(MockitoExtension)` | `clearAllMocks()` in `@AfterEach` |
+| Any argument | `any()` | `any()` |
+| Fire-and-forget mock | N/A | `mockk<T>(relaxed = true)` |
+
+---
+
+## Test Fixtures
+
+**Why fixtures?** Test fixture objects provide factory methods with sensible defaults, reducing boilerplate and making test setup declarative. Override only the parameters relevant to each test case.
+
+### Naming Convention
+
+`object {Module}Fixtures` as a Kotlin singleton in `src/test/kotlin/{module}/fixtures/`:
+
+```kotlin
+// test/kotlin/transaction/fixtures/TransactionFixtures.kt
+object TransactionFixtures {
+
+    fun itemCommand(
+        productId: UUID = UUID.randomUUID(),
+        quantity: Int = 1,
+        unitPrice: Money = Money.cve("100.00"),
+        taxRate: BigDecimal = BigDecimal("0.1500"),
+        discount: Money = Money.ZERO_CVE,
+    ) = CreateItemCommand(
+        productId = productId,
+        quantity = quantity,
+        unitPrice = unitPrice,
+        taxRate = taxRate,
+        discount = discount,
+    )
+
+    fun createCommand(
+        type: TransactionType = TransactionType.SALE,
+        items: List<CreateItemCommand> = listOf(itemCommand()),
+    ) = CreateTransactionCommand(
+        type = type,
+        items = items,
+    )
+}
+```
+
+### Usage in Tests
+
+Override only what matters for each test case:
+
+```kotlin
+@Test
+fun `should calculate total for multi-item transaction`() {
+    val command = TransactionFixtures.createCommand(
+        items = listOf(
+            TransactionFixtures.itemCommand(quantity = 3, unitPrice = Money.cve("50.00")),
+            TransactionFixtures.itemCommand(quantity = 1, unitPrice = Money.cve("200.00")),
+        ),
+    )
+    val result = service.create(command)
+    assertThat(result.subtotal).isEqualTo(Money.cve("350.00"))
 }
 ```
 
@@ -288,13 +411,16 @@ class ProductControllerSliceTest {
     @Autowired
     private lateinit var mockMvc: MockMvc
 
-    @MockitoBean
+    @MockkBean
     private lateinit var productService: ProductService
+
+    @AfterEach
+    fun tearDown() = clearAllMocks()
 
     @Test
     fun `getById should return product`() {
         val product = ProductDto(id = UUID.randomUUID(), name = "Test Product")
-        whenever(productService.getById(product.id)).thenReturn(product)
+        every { productService.getById(product.id) } returns product
 
         mockMvc
             .perform(
@@ -334,12 +460,66 @@ class ProductRepositoryTest {
 
 ---
 
+## Domain Unit Tests
+
+Pure Kotlin tests with no Spring context. Use MockK for dependencies and direct constructor injection:
+
+```kotlin
+class ProductServiceTest {
+    private val repository = mockk<ProductRepository>()
+    private val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
+    private val service = ProductService(repository, eventPublisher)
+
+    @AfterEach
+    fun tearDown() = clearAllMocks()
+
+    @Test
+    fun `should create product from command`() {
+        val command = ProductFixtures.createCommand(name = "Test Product")
+        val productSlot = slot<Product>()
+        every { repository.save(capture(productSlot)) } answers { productSlot.captured }
+
+        val result = service.create(command)
+
+        assertThat(result.name).isEqualTo("Test Product")
+        verify { repository.save(any()) }
+    }
+
+    @Test
+    fun `should throw NotFound for missing product`() {
+        every { repository.findById(any()) } returns Optional.empty()
+
+        assertThatThrownBy { service.getProduct(UUID.randomUUID()) }
+            .isInstanceOf(ProductException.NotFound::class.java)
+    }
+}
+```
+
+Domain entity tests need no mocking at all:
+
+```kotlin
+class TransactionTest {
+
+    @Test
+    fun `void should reject PENDING transactions`() {
+        val transaction = TransactionFixtures.pendingTransaction()
+
+        assertThatThrownBy { transaction.void() }
+            .isInstanceOf(TransactionException.InvalidStateTransition::class.java)
+            .hasMessageContaining("void")
+    }
+}
+```
+
+---
+
 ## Test Organization Summary
 
 | Test Type | Annotation | Scope | Speed |
 |-----------|-----------|-------|-------|
 | Integration | `@SpringBootTest` + `@AutoConfigureMockMvc` | Full application context | Slow |
-| Controller slice | `@WebMvcTest` | Controller + MockMvc only | Fast |
+| Controller slice | `@WebMvcTest` + `@MockkBean` | Controller + MockMvc only | Fast |
 | Repository slice | `@DataJpaTest` | JPA + Testcontainers only | Medium |
 | Modularity | Plain JUnit | Module boundary verification | Fast |
-| Unit | Plain JUnit + Mockito | Single class | Fastest |
+| Domain unit | Plain JUnit + MockK | Single service + mocked deps | Fastest |
+| Entity unit | Plain JUnit | Domain entity logic | Fastest |

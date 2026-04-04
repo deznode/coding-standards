@@ -133,7 +133,9 @@ class OrderReadService {
 
 ## DTO Mapping
 
-Use extension functions in a `Mapper.kt` file within the module's `domain/` package:
+### Extension Functions (Simple Entity-to-DTO)
+
+For simple entity-to-DTO conversions, use extension functions in a `Mapper.kt` file within the module's `domain/` package:
 
 ```kotlin
 // orders/domain/Mapper.kt
@@ -147,14 +149,6 @@ fun Order.toDto(): OrderDto {
         createdAt = this.createdAt,
     )
 }
-
-fun OrderItem.toDto(): OrderItemDto =
-    OrderItemDto(
-        id = this.id!!,
-        productId = this.productId,
-        quantity = this.quantity,
-        unitPrice = this.unitPrice,
-    )
 ```
 
 Usage in services and controllers:
@@ -162,6 +156,10 @@ Usage in services and controllers:
 ```kotlin
 service.listOrders(pageable).map { it.toDto() }
 ```
+
+### Mapper Objects (Full Request/Command/Response Flows)
+
+When the mapping involves Request-to-Command and Entity-to-Response transformations with Command intermediaries, use a dedicated `object {Module}Mapper` in the `api/` package. See [API Design - Mapper Objects](02-api-design.md#mapper-objects) for the full pattern.
 
 ---
 
@@ -225,8 +223,12 @@ mockMvc
 | Service | `{Domain}Service` | `OrderService` |
 | Repository | `{Entity}Repository` | `ProductRepository` |
 | Entity | Singular noun | `Product`, `OrderItem` |
-| DTO (response) | `{Name}Dto` | `ProductDto`, `OrderDto` |
-| DTO (request) | `{Action}{Resource}Request` or `{Resource}CreateDto` | `CreateProductRequest` |
+| DTO (response) | `{Name}Dto` or `{Name}Response` | `ProductDto`, `ProductResponse` |
+| DTO (request) | `{Action}{Resource}Request` | `CreateProductRequest` |
+| Command | `{Action}{Resource}Command` | `CreateProductCommand` |
+| Exception | `sealed class {Module}Exception` | `TransactionException` |
+| Mapper | `object {Module}Mapper` | `ProductMapper` |
+| Test fixture | `object {Module}Fixtures` | `TransactionFixtures` |
 | Event | `{Entity}{Action}Event` (past tense) | `OrderPlacedEvent` |
 | DB table | `snake_case` plural | `order_items` |
 | DB column | `snake_case` | `created_at` |

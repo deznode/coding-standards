@@ -81,19 +81,48 @@ spring:
 
 No setup code needed -- Spring Boot auto-configures from `jdbc:tc:` prefix. `TC_DAEMON=true` keeps the container alive across tests.
 
-## @MockitoBean
+## MockK + @MockkBean
+
+MockK is the preferred mocking library. Use `springmockk` for `@MockkBean`:
 
 ```kotlin
-@MockitoBean
+// Unit tests (no Spring context)
+private val repository = mockk<ProductRepository>()
+private val service = ProductService(repository)
+
+@AfterEach
+fun tearDown() = clearAllMocks()
+
+// Integration/slice tests
+@MockkBean
 private lateinit var externalService: ExternalService
 
 @Test
 fun `should call external service`() {
-    whenever(externalService.process(any())).thenReturn(Result.success())
+    every { externalService.process(any()) } returns Result.success()
     // ... perform request ...
-    verify(externalService).process(any())
+    verify { externalService.process(any()) }
 }
 ```
+
+Argument capture: `val slot = slot<T>()` + `every { repo.save(capture(slot)) } answers { slot.captured }`
+
+Relaxed mocks: `mockk<EventPublisher>(relaxed = true)` for fire-and-forget deps.
+
+## Test Fixtures
+
+Factory objects with sensible defaults:
+
+```kotlin
+object ProductFixtures {
+    fun createCommand(
+        name: String = "Test Product",
+        price: Money = Money.cve("100.00"),
+    ) = CreateProductCommand(name = name, price = price)
+}
+```
+
+Override only what matters for each test case.
 
 ## Event Testing
 
@@ -116,6 +145,7 @@ private fun awaitResult(id: UUID, timeout: Duration = Duration.ofSeconds(10)): R
 | Type | Annotation | Speed |
 |------|-----------|-------|
 | Integration | `@SpringBootTest` + `@AutoConfigureMockMvc` | Slow |
-| Controller slice | `@WebMvcTest` | Fast |
+| Controller slice | `@WebMvcTest` + `@MockkBean` | Fast |
 | Repository slice | `@DataJpaTest` + `@ActiveProfiles("test")` | Medium |
 | Modularity | Plain JUnit (`ApplicationModules.of(...).verify()`) | Fast |
+| Domain unit | Plain JUnit + MockK | Fastest |

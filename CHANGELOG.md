@@ -4,6 +4,26 @@ All notable changes to the deznode code standard are documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.1.0] - 2026-04-04
+
+### Added
+
+- **Error Handling doc** (`docs/backend/07-error-handling.md`): Sealed class exception hierarchies per module, ProblemDetail (RFC 9457) response format, ordered `@RestControllerAdvice` handlers, rich domain state transitions
+- **Command Objects + Mapper pattern** in API design (`02-api-design.md`): Separation of Request DTOs from domain Commands with `{Action}{Resource}Command` naming, `object {Module}Mapper` pattern bridging HTTP and domain layers
+- **MockK testing patterns** (`06-testing.md`): MockK as preferred mocking library over Mockito, `@MockkBean`, `slot<T>()` argument capture, relaxed mocks, Mockito-to-MockK migration table
+- **Test Fixtures pattern** (`06-testing.md`): `object {Module}Fixtures` factory objects with sensible defaults for declarative test setup
+- **Domain Unit Tests** section (`06-testing.md`): Pure Kotlin tests with MockK, entity-level tests for domain invariants
+- **Claude rule** (`templates/claude-rules/backend/error-handling.md`): Condensed error handling patterns for Claude Code
+
+### Changed
+
+- **Security doc** (`05-security.md`): Moved error handling to dedicated `07-error-handling.md`, retained JWT, auth, and rate limiting
+- **API Design doc** (`02-api-design.md`): Updated error format to reference ProblemDetail, updated module layout with commands/mappers/exceptions, updated controller example with Command flow
+- **Testing doc** (`06-testing.md`): Replaced Mockito with MockK throughout, updated slice test examples, expanded test organization summary
+- **Kotlin Conventions** (`03-kotlin-conventions.md`): Added naming conventions for Commands, Exceptions, Mappers, Fixtures; updated DTO mapping section with Mapper object alternative
+- **Architecture doc** (`01-architecture.md`): Updated module package layout with exception/command/mapper placements, updated request flow diagram with Command intermediary, updated shared kernel listing
+- **Claude rules**: Updated `security.md`, `api-patterns.md`, `testing-patterns.md`, `kotlin-conventions.md` to reflect new patterns
+
 ## [1.0.0] - 2026-03-27
 
 ### Added

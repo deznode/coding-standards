@@ -62,8 +62,9 @@ Toda a documentacao detalhada esta em ingles na pasta `docs/`. Abaixo os links d
 | [API Design](docs/backend/02-api-design.md) | Controllers, padroes HTTP, validacao |
 | [Kotlin Conventions](docs/backend/03-kotlin-conventions.md) | Jackson 3.x, logging, transacoes, convencoes de nomes |
 | [Database Patterns](docs/backend/04-database-patterns.md) | Flyway, entidades, UUID, JSONB, pesquisa full-text |
-| [Security](docs/backend/05-security.md) | Autenticacao JWT, hierarquia de excecoes, rate limiting |
-| [Testing](docs/backend/06-testing.md) | Testes de integracao, MockMvc, Testcontainers |
+| [Security](docs/backend/05-security.md) | Autenticacao JWT, autorizacao, rate limiting |
+| [Testing](docs/backend/06-testing.md) | Testes de integracao, MockMvc, MockK, Testcontainers, fixtures |
+| [Error Handling](docs/backend/07-error-handling.md) | Hierarquia de excecoes sealed, ProblemDetail (RFC 9457), @ControllerAdvice |
 
 ### Frontend
 

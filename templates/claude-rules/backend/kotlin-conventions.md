@@ -63,7 +63,7 @@ class OrderReadService {
 
 ## DTO Mapping
 
-Extension functions in `Mapper.kt` within the domain package:
+**Simple entity-to-DTO**: Extension functions in `Mapper.kt` within the domain package:
 
 ```kotlin
 fun Order.toDto(): OrderDto {
@@ -71,6 +71,8 @@ fun Order.toDto(): OrderDto {
     return OrderDto(id = entityId, status = this.status, ...)
 }
 ```
+
+**Full request/command/response flows**: `object {Module}Mapper` in `api/` package (see API patterns rule).
 
 ## ktlint Rules
 
@@ -86,8 +88,12 @@ fun Order.toDto(): OrderDto {
 | Service | `{Domain}Service` | `OrderService` |
 | Repository | `{Entity}Repository` | `ProductRepository` |
 | Entity | Singular noun | `Product`, `OrderItem` |
-| DTO (response) | `{Name}Dto` | `ProductDto` |
+| DTO (response) | `{Name}Dto` or `{Name}Response` | `ProductDto` |
 | DTO (request) | `{Action}{Resource}Request` | `CreateProductRequest` |
+| Command | `{Action}{Resource}Command` | `CreateProductCommand` |
+| Exception | `sealed class {Module}Exception` | `TransactionException` |
+| Mapper | `object {Module}Mapper` | `ProductMapper` |
+| Test fixture | `object {Module}Fixtures` | `TransactionFixtures` |
 | Event | `{Entity}{Action}Event` (past tense) | `OrderPlacedEvent` |
 | DB table | `snake_case` plural | `order_items` |
 | DB column | `snake_case` | `created_at` |

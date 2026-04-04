@@ -1,73 +1,12 @@
 # Security & Authentication
 
-Security patterns for Spring Boot APIs with JWT authentication, exception handling, rate limiting, and authorization.
-
-**Why a standardized exception hierarchy?** Mapping domain exceptions to specific HTTP status codes ensures frontend clients receive consistent, predictable error responses. A `@ControllerAdvice` handler centralizes this mapping, preventing ad-hoc error handling in individual controllers and making error responses uniform across all endpoints.
+Security patterns for Spring Boot APIs with JWT authentication, rate limiting, and authorization.
 
 ---
 
-## Exception Hierarchy
+## Error Handling
 
-| Exception | HTTP Status | Use Case |
-|-----------|------------|----------|
-| Validation errors (Jakarta) | 400 Bad Request | `@Valid` bean validation failures |
-| `IllegalArgumentException` | 400 Bad Request | Invalid parameter values |
-| `ResourceNotFoundException` | 404 Not Found | Entity not found by ID/slug |
-| `BusinessException` | 422 Unprocessable Entity | Business rule violations |
-| `RateLimitExceededException` | 429 Too Many Requests | Rate limit exceeded |
-
-### Throwing Exceptions
-
-```kotlin
-// Service layer -- throw domain-specific exceptions
-throw ResourceNotFoundException("Product with ID '$id' not found.")
-throw BusinessException("Cannot ship order without a delivery address")
-throw RateLimitExceededException("Rate limit exceeded. Please try again later.")
-```
-
-`GlobalExceptionHandler` (annotated with `@ControllerAdvice`) converts these to consistent error responses.
-
----
-
-## Error Response Format
-
-All errors are wrapped in `ErrorResponse` or `ValidationErrorResponse`:
-
-```kotlin
-data class ErrorResponse(
-    val error: String,
-    val message: String,
-    val timestamp: LocalDateTime = LocalDateTime.now(),
-    val path: String? = null,
-    val status: Int,
-)
-
-data class ValidationErrorResponse(
-    val error: String,
-    val details: List<FieldError>,
-    val timestamp: LocalDateTime = LocalDateTime.now(),
-    val path: String? = null,
-    val status: Int = 400,
-) {
-    data class FieldError(
-        val field: String,
-        val rejectedValue: Any?,
-        val message: String,
-    )
-}
-```
-
-### Exception to Response Mapping
-
-| Exception | HTTP Status | Response Type |
-|-----------|-------------|---------------|
-| `ResourceNotFoundException` | 404 | `ErrorResponse` |
-| `BusinessException` | 422 | `ErrorResponse` |
-| `RateLimitExceededException` | 429 | `ErrorResponse` |
-| `MethodArgumentNotValidException` | 400 | `ValidationErrorResponse` |
-| `IllegalArgumentException` | 400 | `ErrorResponse` |
-
-> **Alternative**: RFC 9457 `ProblemDetail` can be used as an alternative error format. Spring Boot provides built-in support via `ProblemDetail` class.
+See [Error Handling & Exception Design](07-error-handling.md) for sealed exception hierarchies, ProblemDetail (RFC 9457) responses, and ordered `@ControllerAdvice` handlers.
 
 ---
 
