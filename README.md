@@ -179,6 +179,7 @@ If you prefer to copy templates manually instead of using the plugin:
 | [State Management](docs/frontend/03-state-management.md) | Zustand, TanStack Query, query key factories, Zod schemas |
 | [Styling](docs/frontend/04-styling.md) | 3-tier token architecture, dark mode, Tailwind CSS 4 |
 | [API Client](docs/frontend/05-api-client.md) | Factory pattern, serverApi, client hooks, dual data fetching |
+| [Performance](docs/frontend/06-performance.md) | Waterfalls, bundle size, server-side optimization, Suspense |
 
 ### Mobile (Android/KMP)
 

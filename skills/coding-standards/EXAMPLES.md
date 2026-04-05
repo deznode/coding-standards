@@ -20,7 +20,7 @@
 **User interaction**:
 ```
 Q: Which rule categories should we install?
-A: [x] Backend (8 rules)  [x] Frontend (4 rules)  [x] Infrastructure (2 rules)
+A: [x] Backend (8 rules)  [x] Frontend (5 rules)  [x] Infrastructure (2 rules)
 
 Q: API directory path?
 A: apps/api (default)
@@ -43,6 +43,7 @@ A: apps/web (default)
 .claude/rules/backend/testing-patterns.md
 .claude/rules/frontend/architecture.md
 .claude/rules/frontend/component-patterns.md
+.claude/rules/frontend/performance.md
 .claude/rules/frontend/state-management.md
 .claude/rules/frontend/styling.md
 .claude/rules/infrastructure/cicd.md

@@ -110,6 +110,7 @@ Toda a documentacao detalhada esta em ingles na pasta `docs/`. Abaixo os links d
 | [State Management](docs/frontend/03-state-management.md) | Zustand, TanStack Query, Zod schemas |
 | [Styling](docs/frontend/04-styling.md) | Tokens de design, dark mode, Tailwind CSS 4 |
 | [API Client](docs/frontend/05-api-client.md) | Factory pattern, hooks, data fetching |
+| [Performance](docs/frontend/06-performance.md) | Waterfalls, bundle size, otimizacao server-side, Suspense |
 
 ### Mobile (Android/KMP)
 

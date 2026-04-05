@@ -4,6 +4,13 @@ All notable changes to the deznode code standard are documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.3.0] - 2026-04-05
+
+### Added
+
+- **Frontend Performance doc** (`docs/frontend/06-performance.md`): 21 performance optimization rules across 3 tiers (Eliminating Waterfalls, Bundle Size, Server-Side Performance), adapted from Vercel Engineering best practices for the deznode Next.js/React stack
+- **Claude rule** (`templates/claude-rules/frontend/performance.md`): Condensed performance patterns for Claude Code
+
 ## [1.2.0] - 2026-04-05
 
 ### Added

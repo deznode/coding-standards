@@ -48,7 +48,7 @@ AskUserQuestion (multiSelect: true):
   "Which rule categories should we install?"
   Options based on detected ecosystems:
   - "Backend (8 rules)" — if JVM detected
-  - "Frontend (4 rules)" — if Node.js detected
+  - "Frontend (5 rules)" — if Node.js detected
   - "Mobile (7 rules)" — if KMP/Android detected
   - "Infrastructure (2 rules)" — always offered
 ```
