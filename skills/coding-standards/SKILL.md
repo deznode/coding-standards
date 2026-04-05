@@ -7,7 +7,7 @@ description: >-
   selection and path customization. Use when user mentions "coding standards",
   "bootstrap rules", "update rules", "audit standards", "install coding
   standards", "sync standards", "check rule drift", "coding-standards setup",
-  or "apply coding standards".
+  "apply coding standards", "mobile standards", "android rules", or "kmp setup".
 disable-model-invocation: true
 ---
 
@@ -39,7 +39,7 @@ standards_repo.found?
 ## Operations
 
 ### Bootstrap (first-time setup)
-1. Confirm detected ecosystems (JVM → backend rules, Node.js → frontend rules, infra always)
+1. Confirm detected ecosystems (JVM → backend rules, Node.js → frontend rules, KMP/Android → mobile rules, infra always)
 2. Collect project paths (API dir, web dir) via AskUserQuestion
 3. Copy templates → `.claude/rules/`, configs → root, hooks → `.claude/hooks/`
 4. Replace TODO markers with actual paths
@@ -63,5 +63,5 @@ See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for common issues.
 
 - **Never overwrite without asking** — always offer merge/replace/skip
 - **Detect first** — run script before any file operations
-- **Ecosystem-aware** — only copy relevant templates for detected stack
+- **Ecosystem-aware** — only copy relevant templates for detected stack (JVM → backend, Node.js → frontend, KMP/Android → mobile)
 - **Non-destructive** — configs are expected to be customized; "modified" status in audit is informational

@@ -4,6 +4,23 @@ All notable changes to the deznode code standard are documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.2.0] - 2026-04-05
+
+### Added
+
+- **Mobile (Android/KMP) documentation** (`docs/mobile/`): 7 new standards documents covering KMP architecture, build configuration, Compose patterns, Kotlin conventions, offline-first architecture, testing, and quality tooling
+- **Mobile Claude rule templates** (`templates/claude-rules/mobile/`): 7 path-scoped rule files for mobile/KMP projects
+- **KMP ecosystem detection** in `detect_standards.py`: Detects Kotlin Multiplatform projects via `shared/src/commonMain/` directory structure or multiplatform plugin references in `build.gradle.kts`
+- **KMP bootstrap example** (`EXAMPLES.md`): Example 5 demonstrating mobile project bootstrap
+- **KMP troubleshooting** (`TROUBLESHOOTING.md`): "KMP/Android Ecosystem Not Detected" section
+
+### Changed
+
+- **README.md** and **README.pt.md**: Added Mobile (Android/KMP) section to tech stack table, repository structure, and documentation index
+- **SKILL.md**: Added mobile trigger phrases and KMP/Android ecosystem support
+- **WORKFLOW.md**: Added Mobile (7 rules) to bootstrap options, KMP path collection, and ecosystem-to-template mapping table
+- **detect_standards.py**: Added `"mobile"` to `RULE_CATEGORIES` and KMP/Android detection logic in `detect_ecosystems()`
+
 ## [1.1.0] - 2026-04-04
 
 ### Added

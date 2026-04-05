@@ -14,7 +14,7 @@ python3 ${CLAUDE_SKILL_DIR}/scripts/detect_standards.py <project-root> [--standa
 |----------|---------|
 | `standards_repo.found` | Whether coding-standards repo was located |
 | `devtools_local` | Stored config from `.claude/devtools.local.md` (null if first run) |
-| `ecosystems` | Detected project stacks (jvm, node) |
+| `ecosystems` | Detected project stacks (jvm, node, kmp) |
 | `comparison` | Per-file status: match, modified, missing, extra |
 | `compliance.score_percent` | Overall compliance percentage |
 
@@ -49,6 +49,7 @@ AskUserQuestion (multiSelect: true):
   Options based on detected ecosystems:
   - "Backend (8 rules)" — if JVM detected
   - "Frontend (4 rules)" — if Node.js detected
+  - "Mobile (7 rules)" — if KMP/Android detected
   - "Infrastructure (2 rules)" — always offered
 ```
 
@@ -65,7 +66,8 @@ AskUserQuestion:
 Only ask questions relevant to selected ecosystems:
 - JVM selected → ask for API directory
 - Node.js selected → ask for web directory
-- Both → ask for both
+- KMP/Android selected → ask for mobile app directory and shared module directory
+- Multiple selected → ask for all relevant directories
 
 ### Step 3: Copy Templates
 
@@ -74,7 +76,7 @@ Only ask questions relevant to selected ecosystems:
 Create directories and copy selected rule files:
 
 ```bash
-mkdir -p .claude/rules/backend .claude/rules/frontend .claude/rules/infrastructure
+mkdir -p .claude/rules/backend .claude/rules/frontend .claude/rules/mobile .claude/rules/infrastructure
 ```
 
 Copy each `.md` file from `templates/claude-rules/{category}/` to `.claude/rules/{category}/`.
@@ -157,10 +159,12 @@ Claude handles this stripping during the copy phase by reading the template, rem
    ---
    coding_standards_path: /absolute/path/to/coding-standards
    last_bootstrap: 2026-04-04
-   ecosystems: [jvm, nodejs]
+   ecosystems: [jvm, nodejs, kmp]
    project_paths:
      api_dir: apps/api
      web_dir: apps/web
+     mobile_dir: apps/mobile
+     shared_dir: shared
    ---
 
    # Devtools Local Configuration
@@ -302,7 +306,10 @@ If user chooses Update, transition to Phase 2B with the comparison data already 
 |-------------------|-------|---------|-------|
 | JVM only | backend + infrastructure | .editorconfig, lefthook.yml, Taskfile.yml | none |
 | Node.js only | frontend + infrastructure | all 5 | both |
-| JVM + Node.js | all 14 | all 5 | both |
+| KMP/Android only | mobile + infrastructure | .editorconfig, lefthook.yml, Taskfile.yml | none |
+| JVM + Node.js | backend + frontend + infrastructure | all 5 | both |
+| JVM + KMP | backend + mobile + infrastructure | .editorconfig, lefthook.yml, Taskfile.yml | none |
+| Full stack (all) | backend + frontend + mobile + infrastructure | all 5 | both |
 | Neither | infrastructure only | .editorconfig, Taskfile.yml | none |
 
 Infrastructure rules are always included regardless of ecosystem.

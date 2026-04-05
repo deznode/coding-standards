@@ -195,7 +195,7 @@ def _is_standards_repo(path):
 # Template listing
 # ---------------------------------------------------------------------------
 
-RULE_CATEGORIES = ["backend", "frontend", "infrastructure"]
+RULE_CATEGORIES = ["backend", "frontend", "mobile", "infrastructure"]
 CONFIG_FILES = [".editorconfig", ".prettierrc", "eslint.config.mjs", "lefthook.yml", "Taskfile.yml"]
 HOOK_FILES = ["auto-lint.sh", "settings.json"]
 
@@ -472,6 +472,22 @@ def detect_ecosystems(project_root):
         if (check_dir / "package.json").exists() and ("node", rel) not in seen:
             ecosystems.append({"ecosystem": "node", "root": rel})
             seen.add(("node", rel))
+
+        # KMP/Android
+        if ("kmp", rel) not in seen:
+            # Primary signal: shared/src/commonMain directory structure
+            if (check_dir / "shared" / "src" / "commonMain").is_dir():
+                ecosystems.append({"ecosystem": "kmp", "root": rel})
+                seen.add(("kmp", rel))
+            # Secondary signal: build.gradle.kts with multiplatform or android plugin
+            elif (check_dir / "build.gradle.kts").exists():
+                try:
+                    content = (check_dir / "build.gradle.kts").read_text(errors="replace")
+                    if "multiplatform" in content or "com.android.application" in content:
+                        ecosystems.append({"ecosystem": "kmp", "root": rel})
+                        seen.add(("kmp", rel))
+                except OSError:
+                    pass
 
     return ecosystems
 

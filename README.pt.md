@@ -10,6 +10,7 @@ Normas de desenvolvimento, configuracoes de ferramentas e fluxos de trabalho par
 |--------|-------------|
 | **Backend** | Kotlin, Spring Boot 4, Spring Modulith 2.0, PostgreSQL, Flyway, Testcontainers |
 | **Frontend** | Next.js 16, React 19, TypeScript, Tailwind CSS 4, Zustand |
+| **Mobile** | Kotlin Multiplatform, Jetpack Compose, SQLDelight, Koin, Ktor |
 | **Ferramentas** | Taskfile v3, Lefthook, ESLint, Prettier, ktlint, detekt, EditorConfig |
 | **Infraestrutura** | Docker, Docker Compose, Terraform |
 
@@ -39,7 +40,7 @@ O skill e ativado automaticamente ao mencionar "coding standards", "bootstrap ru
 
 ### Tres Operacoes
 
-1. **Bootstrap** -- Primeira configuracao: deteta o ecossistema (JVM/Node.js), copia regras, configs e hooks relevantes
+1. **Bootstrap** -- Primeira configuracao: deteta o ecossistema (JVM/Node.js/KMP), copia regras, configs e hooks relevantes
 2. **Update** -- Sincroniza com os templates mais recentes: mostra diffs, permite selecionar atualizacoes
 3. **Audit** -- Verificacao sem alteracoes: pontua o projeto contra as normas atuais
 
@@ -109,6 +110,18 @@ Toda a documentacao detalhada esta em ingles na pasta `docs/`. Abaixo os links d
 | [State Management](docs/frontend/03-state-management.md) | Zustand, TanStack Query, Zod schemas |
 | [Styling](docs/frontend/04-styling.md) | Tokens de design, dark mode, Tailwind CSS 4 |
 | [API Client](docs/frontend/05-api-client.md) | Factory pattern, hooks, data fetching |
+
+### Mobile (Android/KMP)
+
+| Documento | Descricao |
+|-----------|-----------|
+| [Architecture](docs/mobile/01-architecture.md) | Modulos KMP, source sets, DDD para mobile |
+| [Build Configuration](docs/mobile/02-build-configuration.md) | Convention plugins, version catalogs, Gradle |
+| [Compose Patterns](docs/mobile/03-compose-patterns.md) | Route/Screen, gestao de estado, navegacao |
+| [Kotlin Conventions](docs/mobile/04-kotlin-conventions.md) | Expect/actual, Koin DI, kotlinx-serialization, Ktor |
+| [Offline First](docs/mobile/05-offline-first.md) | SQLDelight, estrategias de sync, outbox |
+| [Testing](docs/mobile/06-testing.md) | Piramide de testes, Compose, Flow, screenshot tests |
+| [Quality Tooling](docs/mobile/07-quality-tooling.md) | Detekt, ktlint, Kover, ArchUnit |
 
 ### Ferramentas e Qualidade
 

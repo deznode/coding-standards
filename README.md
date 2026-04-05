@@ -10,6 +10,7 @@ Coding standards, tooling configurations, and development workflows for deznode 
 |-------|-------------|
 | **Backend** | Kotlin, Spring Boot 4, Spring Modulith 2.0, PostgreSQL, Flyway, Testcontainers |
 | **Frontend** | Next.js 16, React 19, TypeScript, Tailwind CSS 4, Zustand |
+| **Mobile** | Kotlin Multiplatform, Jetpack Compose, SQLDelight, Koin, Ktor |
 | **Tooling** | Taskfile v3, Lefthook, ESLint, Prettier, ktlint, detekt, EditorConfig |
 | **Infrastructure** | Docker, Docker Compose, Terraform |
 
@@ -22,6 +23,8 @@ coding-standards/
 │   │   └── 01-architecture.md     # Spring Modulith architecture patterns
 │   ├── frontend/
 │   │   └── 01-architecture.md     # Next.js App Router architecture
+│   ├── mobile/
+│   │   └── 01-architecture.md     # KMP module layout and DDD for mobile
 │   ├── tooling/
 │   │   ├── 01-linting-formatting.md   # ESLint, Prettier, ktlint, detekt
 │   │   ├── 02-git-hooks.md            # Lefthook pre-commit hooks
@@ -35,6 +38,7 @@ coding-standards/
 │   ├── claude-rules/              # Claude Code rules (.claude/rules/)
 │   │   ├── backend/               # Backend-specific rules
 │   │   ├── frontend/              # Frontend-specific rules
+│   │   ├── mobile/                # Mobile/KMP-specific rules
 │   │   └── infrastructure/        # Infrastructure rules
 │   ├── configs/                   # Configuration file templates
 │   └── claude-hooks/              # Claude Code hooks (.claude/hooks/)
@@ -105,11 +109,11 @@ The skill triggers automatically when you mention "coding standards", "bootstrap
 
 ### Three Operations
 
-1. **Bootstrap** -- First-time setup: detects your ecosystem (JVM/Node.js), copies relevant rules, configs, and hooks with path customization
+1. **Bootstrap** -- First-time setup: detects your ecosystem (JVM/Node.js/KMP), copies relevant rules, configs, and hooks with path customization
 2. **Update** -- Syncs existing project with latest templates: shows diffs, lets you select which updates to apply
 3. **Audit** -- Read-only compliance check: scores your project against current standards, reports missing or outdated files
 
-The skill is ecosystem-aware: JVM projects get backend rules, Node.js projects get frontend rules, full-stack projects get everything.
+The skill is ecosystem-aware: JVM projects get backend rules, Node.js projects get frontend rules, KMP/Android projects get mobile rules, full-stack projects get everything.
 
 ---
 
@@ -175,6 +179,18 @@ If you prefer to copy templates manually instead of using the plugin:
 | [State Management](docs/frontend/03-state-management.md) | Zustand, TanStack Query, query key factories, Zod schemas |
 | [Styling](docs/frontend/04-styling.md) | 3-tier token architecture, dark mode, Tailwind CSS 4 |
 | [API Client](docs/frontend/05-api-client.md) | Factory pattern, serverApi, client hooks, dual data fetching |
+
+### Mobile (Android/KMP)
+
+| Document | Description |
+|----------|-------------|
+| [Architecture](docs/mobile/01-architecture.md) | KMP module layout, source sets, DDD for mobile |
+| [Build Configuration](docs/mobile/02-build-configuration.md) | Convention plugins, version catalogs, Gradle config |
+| [Compose Patterns](docs/mobile/03-compose-patterns.md) | Route/Screen split, state management, navigation, performance |
+| [Kotlin Conventions](docs/mobile/04-kotlin-conventions.md) | Expect/actual, Koin DI, kotlinx-serialization, Ktor |
+| [Offline First](docs/mobile/05-offline-first.md) | SQLDelight, sync strategies, outbox, conflict resolution |
+| [Testing](docs/mobile/06-testing.md) | Testing pyramid, Compose tests, Flow tests, screenshot tests |
+| [Quality Tooling](docs/mobile/07-quality-tooling.md) | Detekt, ktlint, Kover, ArchUnit for mobile |
 
 ### Tooling
 

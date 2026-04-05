@@ -123,6 +123,24 @@ The `---` delimiters on lines 1 and last are required. Keys must be at indent 0,
 
 ---
 
+## KMP/Android Ecosystem Not Detected
+
+**Symptom**: Project uses Kotlin Multiplatform but `kmp` not in `ecosystems` array.
+
+**Causes**:
+- No `shared/src/commonMain/` directory at expected location
+- `build.gradle.kts` doesn't contain `multiplatform` or `com.android.application` plugin reference
+- Running from wrong directory (not project root)
+- Shared module uses a non-standard name (not `shared/`)
+
+**Fix**:
+- Ensure the project has a `shared/src/commonMain/` directory structure, or that the root `build.gradle.kts` references the multiplatform plugin
+- Run from the project root directory
+- For non-standard structures, manually select "Mobile (7 rules)" when prompted during bootstrap
+- The detection checks root, one level deep, and monorepo containers (`apps/`, `packages/`, etc.)
+
+---
+
 ## Audit Shows "Modified" for Expected Customizations
 
 **Symptom**: Configs like `lefthook.yml` and `Taskfile.yml` show as "modified" in audit even though they're correct.

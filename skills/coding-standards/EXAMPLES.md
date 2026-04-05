@@ -186,3 +186,53 @@ Compliance: 12/14 rules, 3/5 configs, 1/2 hooks — 76%
 Q: Fix missing/outdated items?
 A: Yes, start Update workflow
 ```
+
+---
+
+## Example 5: Mobile (KMP/Android) Bootstrap
+
+**Scenario**: Kotlin Multiplatform project with shared module and Android app.
+
+**Detection output** (key fields):
+```json
+{
+  "standards_repo": {"found": true, "template_count": 28},
+  "devtools_local": null,
+  "ecosystems": [
+    {"ecosystem": "kmp", "root": "."},
+    {"ecosystem": "jvm", "build_tool": "gradle-kotlin", "root": "apps/mobile"}
+  ],
+  "compliance": {"total_installed": 0, "total": 28, "score_percent": 0}
+}
+```
+
+**User interaction**:
+```
+Q: Which rule categories should we install?
+A: [x] Mobile (7 rules)  [x] Infrastructure (2 rules)
+
+Q: Mobile app directory path?
+A: apps/mobile (default)
+
+Q: Shared module directory path?
+A: shared (default)
+```
+
+**Result**: 12 files installed (7 mobile rules + 2 infrastructure rules + 3 configs). Compliance: 100%.
+
+**Files created**:
+```
+.claude/rules/mobile/architecture.md
+.claude/rules/mobile/build-config.md
+.claude/rules/mobile/compose-patterns.md
+.claude/rules/mobile/kotlin-conventions.md
+.claude/rules/mobile/offline-first.md
+.claude/rules/mobile/testing.md
+.claude/rules/mobile/quality-tooling.md
+.claude/rules/infrastructure/cicd.md
+.claude/rules/infrastructure/tooling.md
+.editorconfig
+lefthook.yml
+Taskfile.yml
+.claude/devtools.local.md
+```
