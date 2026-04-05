@@ -3,6 +3,6 @@
   "description": "Bootstrap, update, or audit projects against deznode coding standards (Claude rules, configs, hooks)",
   "version": "1.0.0",
   "author": {
-    "name": "Arkhe"
+    "name": "Joaquim Costa"
   }
 }
