@@ -13,7 +13,41 @@ Normas de desenvolvimento, configuracoes de ferramentas e fluxos de trabalho par
 | **Ferramentas** | Taskfile v3, Lefthook, ESLint, Prettier, ktlint, detekt, EditorConfig |
 | **Infraestrutura** | Docker, Docker Compose, Terraform |
 
-## Inicio Rapido: Criar um Novo Projeto Deznode
+## Plugin Claude Code (Recomendado)
+
+Este repo e um plugin Claude Code com um skill automatizado para configurar, atualizar e auditar projetos.
+
+### Instalacao
+
+No diretorio do projeto alvo:
+
+```bash
+# Adicionar este repo como marketplace de plugins
+/plugin marketplace add /path/to/coding-standards
+
+# Instalar o plugin
+/plugin install coding-standards@coding-standards
+```
+
+### Utilizacao
+
+O skill e ativado automaticamente ao mencionar "coding standards", "bootstrap rules", "update rules", ou "audit standards". Ou invoca diretamente:
+
+```
+/coding-standards:coding-standards
+```
+
+### Tres Operacoes
+
+1. **Bootstrap** -- Primeira configuracao: deteta o ecossistema (JVM/Node.js), copia regras, configs e hooks relevantes
+2. **Update** -- Sincroniza com os templates mais recentes: mostra diffs, permite selecionar atualizacoes
+3. **Audit** -- Verificacao sem alteracoes: pontua o projeto contra as normas atuais
+
+---
+
+## Inicio Rapido: Configuracao Manual
+
+Se preferir copiar os templates manualmente:
 
 1. **Criar o repositorio** e clonar localmente.
 

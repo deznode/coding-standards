@@ -38,6 +38,10 @@ coding-standards/
 │   │   └── infrastructure/        # Infrastructure rules
 │   ├── configs/                   # Configuration file templates
 │   └── claude-hooks/              # Claude Code hooks (.claude/hooks/)
+├── skills/                        # Claude Code plugin skill
+│   └── coding-standards/          # Bootstrap, update, audit skill
+├── .claude-plugin/
+│   └── plugin.json                # Plugin manifest
 └── README.md                      # This file
 ```
 
@@ -75,7 +79,43 @@ Copy into a new project's `.claude/hooks/` directory and configure in `.claude/s
 cp -r templates/claude-hooks/* /path/to/project/.claude/hooks/
 ```
 
-## Quick Start: Bootstrapping a New Deznode Project
+## Claude Code Plugin (Recommended)
+
+This repo is a Claude Code plugin with an automated skill for bootstrapping, updating, and auditing projects.
+
+### Installation
+
+From the target project directory:
+
+```bash
+# Add this repo as a plugin marketplace
+/plugin marketplace add /path/to/coding-standards
+
+# Install the plugin
+/plugin install coding-standards@coding-standards
+```
+
+### Usage
+
+The skill triggers automatically when you mention "coding standards", "bootstrap rules", "update rules", or "audit standards". Or invoke directly:
+
+```
+/coding-standards:coding-standards
+```
+
+### Three Operations
+
+1. **Bootstrap** -- First-time setup: detects your ecosystem (JVM/Node.js), copies relevant rules, configs, and hooks with path customization
+2. **Update** -- Syncs existing project with latest templates: shows diffs, lets you select which updates to apply
+3. **Audit** -- Read-only compliance check: scores your project against current standards, reports missing or outdated files
+
+The skill is ecosystem-aware: JVM projects get backend rules, Node.js projects get frontend rules, full-stack projects get everything.
+
+---
+
+## Quick Start: Manual Bootstrapping
+
+If you prefer to copy templates manually instead of using the plugin:
 
 1. **Create the project repository** and clone it locally.
 
