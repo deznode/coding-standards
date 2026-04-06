@@ -15,7 +15,7 @@ All API responses use wrappers from `shared/api/ApiResult.kt`. Never use `Respon
 ```kotlin
 data class ApiResult<T>(
     val data: T,
-    val timestamp: LocalDateTime = LocalDateTime.now(),
+    val timestamp: Instant = Instant.now(),
     val status: Int = 200,
 )
 ```
@@ -26,7 +26,7 @@ data class ApiResult<T>(
 data class PagedApiResult<T : Any>(
     val data: List<T>,
     val pageable: PageableInfo,
-    val timestamp: LocalDateTime = LocalDateTime.now(),
+    val timestamp: Instant = Instant.now(),
     val status: Int = 200,
 ) {
     companion object {
