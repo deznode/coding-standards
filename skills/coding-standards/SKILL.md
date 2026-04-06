@@ -7,7 +7,8 @@ description: >-
   selection and path customization. Use when user mentions "coding standards",
   "bootstrap rules", "update rules", "audit standards", "install coding
   standards", "sync standards", "check rule drift", "coding-standards setup",
-  "apply coding standards", "mobile standards", "android rules", or "kmp setup".
+  "apply coding standards", "mobile standards", "android rules", "kmp setup",
+  "install ApiResult", "install source template", or "source files".
 disable-model-invocation: true
 ---
 
@@ -32,7 +33,7 @@ standards_repo.found?
 ├── No → Ask for path, re-run detector
 └── Yes
     ├── No installed rules/configs AND no devtools_local → Bootstrap
-    ├── devtools_local exists → AskUserQuestion: Update or Audit?
+    ├── devtools_local exists → AskUserQuestion: Update, Audit, or Install Source Templates?
     └── Has installed rules but no devtools_local → Offer Audit first
 ```
 
@@ -53,7 +54,13 @@ standards_repo.found?
 
 ### Audit (read-only drift check)
 1. Present compliance score and per-file status table
-2. Offer to route to Update if issues found
+2. Offer to route to Update or Install Source Templates if issues found
+
+### Install Source Templates
+1. List available source templates from `templates/source-files/`
+2. Check which are already installed in the project (grep for key class names)
+3. For each uninstalled template, offer to install with package substitution
+4. Currently available: `ApiResult.kt` (API response wrappers)
 
 See [WORKFLOW.md](WORKFLOW.md) for detailed steps.
 See [EXAMPLES.md](EXAMPLES.md) for usage examples.

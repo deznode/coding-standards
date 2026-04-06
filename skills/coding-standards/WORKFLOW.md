@@ -48,8 +48,8 @@ devtools_local = null AND compliance.total_installed = 0?
   → Route to Bootstrap
 
 devtools_local != null?
-  → AskUserQuestion: "Update to latest standards?" or "Audit drift?"
-    → Update or Audit
+  → AskUserQuestion: "Update to latest standards?", "Audit drift?", or "Install source templates?"
+    → Update, Audit, or Install Source Templates (Phase 2D)
 
 compliance.total_installed > 0 AND devtools_local = null?
   → AskUserQuestion: "Detected existing rules. Audit first or bootstrap fresh?"
@@ -532,10 +532,86 @@ Compliance: 12/14 rules, 3/5 configs, 1/2 hooks -- 76%
 AskUserQuestion:
   "Would you like to fix missing/outdated items?"
   - "Yes, start Update workflow"
+  - "Install source templates (e.g., ApiResult.kt)"
   - "No, audit only"
 ```
 
 If user chooses Update, transition to Phase 2B with the comparison data already loaded.
+If user chooses Install source templates, transition to Phase 2D.
+
+---
+
+## Phase 2D: Install Source Templates
+
+Standalone operation for installing source template files into the project.
+Can be reached from:
+- Top-level routing (when devtools_local exists)
+- Audit Step 3 resolution
+- Direct user request (e.g., "install ApiResult")
+
+### Step 1: List Available Source Templates
+
+Scan `templates/source-files/` in the standards repo for available templates:
+
+| Template | Category | Description |
+|----------|----------|-------------|
+| `backend/ApiResult.kt` | Backend | API response wrappers (`ApiResult<T>`, `PagedApiResult<T>`, `PageableInfo`) |
+
+### Step 2: Check Installation Status
+
+For each template, check if the pattern already exists in the project:
+
+| Template | Pattern to Check | How |
+|----------|-----------------|-----|
+| `ApiResult.kt` | `ApiResult` class | grep for `class ApiResult` in `{api_dir}/**/*.kt` |
+
+Present results:
+
+```
+## Source Templates
+
+| Template | Status |
+|----------|--------|
+| ApiResult.kt | NOT INSTALLED -- ApiResult class not found in codebase |
+```
+
+If all templates are already installed, inform the user and exit.
+
+### Step 3: Install Selected Templates
+
+```
+AskUserQuestion (multiSelect: true):
+  "Which source templates should we install?"
+  - "ApiResult.kt -- API response wrappers (ApiResult<T>, PagedApiResult<T>)"
+```
+
+For each selected template:
+
+1. Read the template from `templates/source-files/{category}/{file}`
+2. Detect the project's base package:
+   - Grep for the first `package` declaration in `{api_dir}/**/*.kt`
+   - Extract the root package (e.g., `com.example.myapp`)
+   - If not found, ask via AskUserQuestion: "What is your project's base package?"
+3. Replace `{{API_PACKAGE}}` with the detected/provided package
+4. Determine install path:
+   - Convert package to path: `com.example.myapp` -> `com/example/myapp`
+   - Full path: `{api_dir}/src/main/kotlin/{package_path}/shared/api/{file}`
+5. Create parent directories if needed
+6. Write the file
+7. Confirm: "Installed ApiResult.kt at {path}"
+
+### Step 4: Post-Install Notes
+
+After installing source templates, inform the user:
+
+```
+## Source Templates Installed
+
+- ApiResult.kt installed at {path}
+- The `api-patterns.md` rule now describes patterns that exist in your codebase
+- Existing controllers can be migrated from ResponseEntity<T> to ApiResult<T>
+- Error handling uses ProblemDetail (RFC 9457) -- see error-handling.md rule
+```
 
 ---
 
