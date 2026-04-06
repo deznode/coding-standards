@@ -1,8 +1,7 @@
 package {{API_PACKAGE}}.shared.api
 
-import com.fasterxml.jackson.annotation.JsonFormat
 import org.springframework.data.domain.Page
-import java.time.LocalDateTime
+import java.time.Instant
 
 /**
  * Standard API response wrapper for successful responses.
@@ -15,8 +14,7 @@ import java.time.LocalDateTime
  */
 data class ApiResult<T>(
     val data: T,
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'")
-    val timestamp: LocalDateTime = LocalDateTime.now(),
+    val timestamp: Instant = Instant.now(),
     val status: Int = 200,
 )
 
@@ -33,8 +31,7 @@ data class ApiResult<T>(
 data class PagedApiResult<T : Any>(
     val data: List<T>,
     val pageable: PageableInfo,
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'")
-    val timestamp: LocalDateTime = LocalDateTime.now(),
+    val timestamp: Instant = Instant.now(),
     val status: Int = 200,
 ) {
     companion object {
