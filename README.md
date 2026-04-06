@@ -2,6 +2,8 @@
 
 # Deznode Coding Standards
 
+![Deznode Coding Standards](assets/hero/hero-wb-toolbelt-v2_0_20260406_121046.jpg)
+
 Coding standards, tooling configurations, and development workflows for deznode projects. This repository provides reusable documentation, configuration templates, and Claude Code rules for bootstrapping new projects.
 
 ## Tech Stack Covered
