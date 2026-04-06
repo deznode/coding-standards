@@ -3,9 +3,14 @@ paths:
   - build-logic/**
   - gradle/**
   - "*.gradle.kts"
+standard_type: aspirational
 ---
 
 # Build Configuration
+
+> **Standard note:** This rule describes the _target_ coding standard. The project may
+> currently use different patterns. When editing existing code, follow the patterns
+> established in the codebase. When writing new code, prefer these patterns.
 
 > Full reference: `docs/mobile/02-build-configuration.md`
 

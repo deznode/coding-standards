@@ -65,3 +65,4 @@ See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for common issues.
 - **Detect first** — run script before any file operations
 - **Ecosystem-aware** — only copy relevant templates for detected stack (JVM → backend, Node.js → frontend, KMP/Android → mobile)
 - **Non-destructive** — configs are expected to be customized; "modified" status in audit is informational
+- **Aspirational templates** -- template rules describe target patterns (marked `standard_type: aspirational`). A codebase compatibility check (Step 4.5) identifies gaps and lets the user decide how to handle them. Source files like `ApiResult.kt` can be installed to implement the patterns.

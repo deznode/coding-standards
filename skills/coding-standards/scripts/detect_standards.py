@@ -101,6 +101,13 @@ def parse_frontmatter(filepath):
                 result[key] = {}
                 current_key = key
                 current_indent = indent
+        elif current_key and indent > 0 and stripped.startswith("- "):
+            # List item under current_key
+            item = stripped[2:].strip().strip("'\"")
+            if isinstance(result.get(current_key), dict) and not result[current_key]:
+                result[current_key] = []  # Convert empty dict to list
+            if isinstance(result.get(current_key), list):
+                result[current_key].append(item)
         elif current_key and indent > 0 and ":" in stripped:
             # Nested key-value
             nk, _, nv = stripped.partition(":")
@@ -197,7 +204,9 @@ def _is_standards_repo(path):
 
 RULE_CATEGORIES = ["backend", "frontend", "mobile", "infrastructure"]
 CONFIG_FILES = [".editorconfig", ".prettierrc", "eslint.config.mjs", "lefthook.yml", "Taskfile.yml"]
-HOOK_FILES = ["auto-lint.sh", "settings.json"]
+HOOK_SCRIPTS = ["auto-lint.sh"]       # Live in .claude/hooks/
+HOOK_SETTINGS = ["settings.json"]     # Live in .claude/ (not hooks/)
+HOOK_FILES = HOOK_SCRIPTS + HOOK_SETTINGS  # Combined for template listing
 
 
 def list_available_templates(standards_root):
@@ -278,10 +287,15 @@ def scan_installed_configs(project_root):
 
 
 def scan_installed_hooks(project_root):
-    """Check .claude/hooks/ for known hook files."""
+    """Check for hook files in their expected locations.
+
+    Hook scripts live in .claude/hooks/, settings live in .claude/.
+    """
     hooks_dir = Path(project_root) / ".claude" / "hooks"
+    claude_dir = Path(project_root) / ".claude"
     result = {}
-    for name in HOOK_FILES:
+
+    for name in HOOK_SCRIPTS:
         p = hooks_dir / name
         if p.exists():
             info = {"installed": True}
@@ -290,6 +304,14 @@ def scan_installed_hooks(project_root):
             result[name] = info
         else:
             result[name] = {"installed": False}
+
+    for name in HOOK_SETTINGS:
+        p = claude_dir / name
+        if p.exists():
+            result[name] = {"installed": True}
+        else:
+            result[name] = {"installed": False}
+
     return result
 
 
@@ -364,9 +386,10 @@ def compare_templates(standards_root, project_root):
             entry["status"] = "missing"
         comparisons["configs"].append(entry)
 
-    # Hooks comparison
+    # Hooks comparison -- scripts in .claude/hooks/, settings in .claude/
     hooks_dir = std / "templates" / "claude-hooks"
-    for name in HOOK_FILES:
+
+    for name in HOOK_SCRIPTS:
         entry = {"file": name}
         template_path = hooks_dir / name
         installed_path = proj / ".claude" / "hooks" / name
@@ -384,46 +407,179 @@ def compare_templates(standards_root, project_root):
             entry["status"] = "missing"
         comparisons["hooks"].append(entry)
 
+    for name in HOOK_SETTINGS:
+        entry = {"file": name}
+        template_path = hooks_dir / name
+        installed_path = proj / ".claude" / name
+
+        if not template_path.exists():
+            continue
+
+        if installed_path.exists():
+            t_hash = file_md5(template_path)
+            i_hash = file_md5(installed_path)
+            entry["status"] = "match" if t_hash == i_hash else "modified"
+            entry["template_hash"] = t_hash
+            entry["installed_hash"] = i_hash
+        else:
+            entry["status"] = "missing"
+        comparisons["hooks"].append(entry)
+
     return comparisons
 
 
-def compute_compliance(comparison):
-    """Compute compliance score from comparison results."""
+def compute_compliance(comparison, active_ecosystems=None, accepted_deviations=None):
+    """Compute compliance score from comparison results.
+
+    Args:
+        comparison: The comparison dict from compare_templates()
+        active_ecosystems: List of active ecosystem strings (e.g., ["jvm", "node"]).
+            If provided, only rules in matching categories are counted.
+            If None, all rules are counted (backward compatible).
+        accepted_deviations: List of file names (e.g., ["lefthook.yml"])
+            that are intentionally different. Counted as "pass" not "fail".
+    """
+    ECOSYSTEM_TO_CATEGORY = {
+        "jvm": "backend",
+        "node": "frontend",
+        "kmp": "mobile",
+    }
+
+    active_categories = None
+    if active_ecosystems is not None:
+        active_categories = {"infrastructure"}  # always active
+        for eco in active_ecosystems:
+            cat = ECOSYSTEM_TO_CATEGORY.get(eco)
+            if cat:
+                active_categories.add(cat)
+
+    accepted = set(accepted_deviations) if accepted_deviations else set()
+
+    def _is_active_rule(entry):
+        """Check if a rule entry belongs to an active category."""
+        if active_categories is None:
+            return True
+        category = entry["file"].split("/")[0] if "/" in entry["file"] else None
+        return category in active_categories if category else True
+
+    def _is_accepted(entry):
+        return entry["file"] in accepted
+
     total = 0
     installed = 0
     matching = 0
 
-    for category in ["rules", "configs", "hooks"]:
-        for entry in comparison.get(category, []):
+    for category_key in ["rules", "configs", "hooks"]:
+        for entry in comparison.get(category_key, []):
             if entry["status"] == "extra":
-                continue  # Don't count extras against compliance
+                continue
+            if category_key == "rules" and not _is_active_rule(entry):
+                continue
+
             total += 1
-            if entry["status"] in ("match", "modified"):
+            if _is_accepted(entry):
                 installed += 1
-            if entry["status"] == "match":
                 matching += 1
+            elif entry["status"] in ("match", "modified"):
+                installed += 1
+                if entry["status"] == "match":
+                    matching += 1
 
     score = round((installed / total) * 100) if total > 0 else 0
 
-    rules_entries = [e for e in comparison.get("rules", []) if e["status"] != "extra"]
-    configs_entries = [e for e in comparison.get("configs", []) if e["status"] != "extra"]
-    hooks_entries = [e for e in comparison.get("hooks", []) if e["status"] != "extra"]
+    def _category_stats(category_key):
+        entries = [
+            e for e in comparison.get(category_key, [])
+            if e["status"] != "extra"
+            and (category_key != "rules" or _is_active_rule(e))
+        ]
+        return {
+            "installed": sum(
+                1 for e in entries
+                if e["status"] in ("match", "modified") or _is_accepted(e)
+            ),
+            "total": len(entries),
+            "matching": sum(
+                1 for e in entries
+                if e["status"] == "match" or _is_accepted(e)
+            ),
+        }
+
+    rules_s = _category_stats("rules")
+    configs_s = _category_stats("configs")
+    hooks_s = _category_stats("hooks")
 
     return {
-        "rules_installed": sum(1 for e in rules_entries if e["status"] in ("match", "modified")),
-        "rules_total": len(rules_entries),
-        "rules_matching": sum(1 for e in rules_entries if e["status"] == "match"),
-        "configs_installed": sum(1 for e in configs_entries if e["status"] in ("match", "modified")),
-        "configs_total": len(configs_entries),
-        "configs_matching": sum(1 for e in configs_entries if e["status"] == "match"),
-        "hooks_installed": sum(1 for e in hooks_entries if e["status"] in ("match", "modified")),
-        "hooks_total": len(hooks_entries),
-        "hooks_matching": sum(1 for e in hooks_entries if e["status"] == "match"),
+        "rules_installed": rules_s["installed"],
+        "rules_total": rules_s["total"],
+        "rules_matching": rules_s["matching"],
+        "configs_installed": configs_s["installed"],
+        "configs_total": configs_s["total"],
+        "configs_matching": configs_s["matching"],
+        "hooks_installed": hooks_s["installed"],
+        "hooks_total": hooks_s["total"],
+        "hooks_matching": hooks_s["matching"],
         "total_installed": installed,
         "total": total,
         "total_matching": matching,
         "score_percent": score,
+        "active_ecosystems": list(active_ecosystems) if active_ecosystems else None,
+        "accepted_deviations": list(accepted) if accepted else [],
     }
+
+
+# ---------------------------------------------------------------------------
+# Rule path validation
+# ---------------------------------------------------------------------------
+
+def validate_rule_paths(project_root):
+    """Check that rule paths: frontmatter references existing directories.
+
+    Returns list of warnings for paths that don't resolve to existing directories.
+    Ignores wildcard-only paths (e.g., '**', '**/detekt.yml').
+    """
+    root = Path(project_root)
+    rules_dir = root / ".claude" / "rules"
+    warnings = []
+
+    if not rules_dir.is_dir():
+        return warnings
+
+    for rule_file in sorted(rules_dir.rglob("*.md")):
+        fm = parse_frontmatter(str(rule_file))
+        if not fm:
+            continue
+
+        paths_value = fm.get("paths")
+        if paths_value is None:
+            continue
+
+        # Normalize to list
+        if isinstance(paths_value, str):
+            path_list = [paths_value]
+        elif isinstance(paths_value, list):
+            path_list = paths_value
+        else:
+            continue
+
+        for p in path_list:
+            p = str(p).strip().strip("'\"")
+            # Skip pure glob patterns (start with * or **)
+            if p.startswith("*"):
+                continue
+            # Extract base directory: strip everything from first glob char
+            base_dir = re.split(r'[*?{\[]', p)[0].rstrip('/')
+            if not base_dir:
+                continue
+            if not (root / base_dir).is_dir():
+                warnings.append({
+                    "rule": str(rule_file.relative_to(rules_dir)),
+                    "path_pattern": p,
+                    "base_dir": base_dir,
+                    "exists": False,
+                })
+
+    return warnings
 
 
 # ---------------------------------------------------------------------------
@@ -547,7 +703,25 @@ def detect(project_root, standards_path_override=None):
     if std_path:
         comparison = compare_templates(std_path, str(root))
         result["comparison"] = comparison
-        result["compliance"] = compute_compliance(comparison)
+
+        # Extract active ecosystems for scoped scoring
+        active_ecos = [e.get("ecosystem") for e in ecosystems] or None
+
+        # Extract accepted deviations from devtools_local
+        accepted_devs = None
+        if devtools_local:
+            ad = devtools_local.get("accepted_deviations")
+            if isinstance(ad, list):
+                accepted_devs = ad
+            elif isinstance(ad, dict):
+                accepted_devs = list(ad.keys())
+
+        result["compliance"] = compute_compliance(
+            comparison, active_ecos, accepted_devs
+        )
+
+    # Validate rule paths point to existing directories
+    result["rule_path_warnings"] = validate_rule_paths(str(root))
 
     return result
 

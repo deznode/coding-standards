@@ -2,9 +2,14 @@
 paths:
   - shared/**/test/**
   - apps/mobile/**/test/**
+standard_type: aspirational
 ---
 
 # Testing
+
+> **Standard note:** This rule describes the _target_ coding standard. The project may
+> currently use different patterns. When editing existing code, follow the patterns
+> established in the codebase. When writing new code, prefer these patterns.
 
 > Full reference: `docs/mobile/06-testing.md`
 

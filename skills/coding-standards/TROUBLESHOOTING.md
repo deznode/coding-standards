@@ -116,6 +116,9 @@ ecosystems: [jvm, nodejs]
 project_paths:
   api_dir: apps/api
   web_dir: apps/web
+accepted_deviations:
+  - lefthook.yml
+  - Taskfile.yml
 ---
 ```
 
@@ -148,6 +151,13 @@ The `---` delimiters on lines 1 and last are required. Keys must be at indent 0,
 **Explanation**: This is expected. During bootstrap, TODO markers in templates are replaced with project-specific paths (e.g., `apps/api` → your directory). The MD5 hash will differ from the template.
 
 **How to interpret**:
-- **Rules**: Should typically be "match" since they have no TODO markers
-- **Configs**: "Modified" is normal for `lefthook.yml`, `Taskfile.yml`, `eslint.config.mjs`, `auto-lint.sh` — these are customized during bootstrap
-- **Missing**: These need attention — the file was never installed
+- **Rules**: "Modified" is normal for rules whose `paths:` frontmatter was customized
+  during bootstrap (e.g., `apps/api` replaced with `apps/backend`). If ALL rules show
+  "match" in a project with non-default paths, that means path substitution was missed
+  and the rules may be inert.
+- **Configs**: "Modified" is normal for `lefthook.yml`, `Taskfile.yml`, `eslint.config.mjs`,
+  `auto-lint.sh` -- these are customized during bootstrap
+- **Hooks**: `settings.json` is checked at `.claude/settings.json` (not `.claude/hooks/`).
+  `auto-lint.sh` is checked at `.claude/hooks/auto-lint.sh`.
+- **Missing**: These need attention -- the file was never installed or was intentionally
+  skipped. Check `devtools.local.md` for `accepted_deviations` list.

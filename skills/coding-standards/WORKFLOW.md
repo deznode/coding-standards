@@ -1,5 +1,25 @@
 # Coding Standards Workflow
 
+## Template Design Philosophy
+
+Templates define the **target standard** -- the patterns new code should aspire to.
+They may not match the project's current implementation. This is intentional.
+
+When a project has both template rules and project-specific rules:
+- **Template rules** guide new code toward the standard (marked `standard_type: aspirational`)
+- **Project-specific rules** document the current implementation
+- **Claude Code** loads both when editing files in matching paths
+
+Template rules include a visible "Standard note" callout to make this distinction
+clear. When editing existing code, follow the established codebase patterns. When
+writing new code, prefer the patterns described in the template rules.
+
+This dual-rule approach allows projects to gradually adopt standards without
+receiving contradictory guidance. The aspirational annotation ensures Claude Code
+knows which rules describe the target vs. the current state.
+
+---
+
 ## Phase 1: Detection
 
 Run the detection script on the target project:
@@ -47,10 +67,10 @@ Present detected ecosystems and let user confirm which rule categories to instal
 AskUserQuestion (multiSelect: true):
   "Which rule categories should we install?"
   Options based on detected ecosystems:
-  - "Backend (8 rules)" — if JVM detected
-  - "Frontend (5 rules)" — if Node.js detected
-  - "Mobile (7 rules)" — if KMP/Android detected
-  - "Infrastructure (2 rules)" — always offered
+  - "Backend (8 rules)" -- if JVM detected
+  - "Frontend (5 rules)" -- if Node.js detected
+  - "Mobile (7 rules)" -- if KMP/Android detected
+  - "Infrastructure (2 rules)" -- always offered
 ```
 
 ### Step 2: Collect Project Paths
@@ -71,6 +91,10 @@ Only ask questions relevant to selected ecosystems:
 
 ### Step 3: Copy Templates
 
+> **Important:** Before writing any file that already exists, use the Read tool to
+> read its current content first. This prevents Write tool errors and enables diff
+> comparison. Batch-read all existing target files before starting writes.
+
 #### Rules → `.claude/rules/{category}/`
 
 Create directories and copy selected rule files:
@@ -81,12 +105,45 @@ mkdir -p .claude/rules/backend .claude/rules/frontend .claude/rules/mobile .clau
 
 Copy each `.md` file from `templates/claude-rules/{category}/` to `.claude/rules/{category}/`.
 
-Rules require NO TODO replacement — they use `paths:` frontmatter which is generic.
+##### Rule Overlap Detection
+
+Before copying each template rule, check if the project already has a rule file
+in the same category directory:
+
+1. List existing `.md` files in `.claude/rules/{category}/`
+2. For each existing file, extract the `# Title` heading
+3. Compare topic headings against the template being installed
+4. If the existing file covers the same domain (e.g., both are about "architecture"
+   for the backend category), present options:
+
+```
+Overlap detected:
+  Template: backend/architecture.md ("Spring Modulith + DDD Architecture")
+  Existing: backend/backend-architecture.md ("Backend Architecture")
+
+Options:
+  1. Coexist -- install both (template has aspirational note to reduce confusion)
+  2. Skip -- don't install template (keep project-specific rule only)
+  3. Merge -- add template sections missing from project-specific file
+```
+
+AskUserQuestion with these options. Default recommendation: "Coexist" since
+template rules now include the aspirational note distinguishing them from
+project-specific rules.
+
+##### Rule Path Substitution
+
+Rules require path substitution in their YAML frontmatter `paths:` field and
+sometimes in body content. The default paths match the template directory names
+(`apps/api`, `apps/web`, `apps/mobile`, `shared/`, `build-logic/`). During
+bootstrap, replace these with the user's actual directory paths (collected in Step 2).
+
+See the **Rule Path Substitution** table in Step 4 (Phase 2A) below for the full mapping.
 
 If a file already exists, use AskUserQuestion:
-- "Replace" — overwrite with template
-- "Skip" — keep existing
-- "Show diff" — display differences before deciding
+- "Replace" -- overwrite with template
+- "Skip" -- keep existing
+- "Show diff" -- display differences before deciding
 
 #### Configs → project root
 
@@ -96,6 +153,24 @@ Copy from `templates/configs/` to project root. For each config:
 2. Apply path substitutions (see TODO Marker Map below)
 3. If file exists: offer merge/replace/skip
 4. Write file
+
+##### Monorepo Config Deduplication
+
+Before copying Node.js configs (`.prettierrc`, `eslint.config.mjs`) to the project root,
+check if the user's web directory already has its own version:
+
+```python
+for config in [".prettierrc", "eslint.config.mjs"]:
+    app_level = Path(user_web_dir) / config
+    if app_level.exists():
+        # Skip root-level copy -- app-level config takes precedence
+        skip_with_note(config, f"Skipped {config} -- already exists at {user_web_dir}/{config}")
+```
+
+Rationale: In a monorepo, lefthook hooks specify `root: "{web_dir}/"` which makes
+ESLint/Prettier resolve configs from the app directory. A root-level config is
+redundant at best and conflicting at worst (different import resolution, different
+`printWidth`, etc.).
 
 #### Hooks → `.claude/hooks/`
 
@@ -122,12 +197,48 @@ When copying config files, apply these substitutions:
 | `eslint.config.mjs` | `internalPattern: ["^@/.+"]` | User's import pattern (or keep default) |
 | `auto-lint.sh` | `*/apps/web/*.ts\|*/apps/web/*.tsx` | User's web directory |
 
-Use simple string replacement — the defaults are literal strings:
+Use simple string replacement -- the defaults are literal strings:
 
 ```python
 content = template_content.replace("apps/web", user_web_dir)
 content = content.replace("apps/api", user_api_dir)
 ```
+
+#### Rule Path Substitution
+
+When copying rule files, apply path substitutions to both `paths:` frontmatter
+and rule body content. Use simple string replacement after reading the template:
+
+| Rule Category | Default Value | Replace With |
+|---------------|---------------|--------------|
+| backend/*.md | `apps/api` | User's API directory |
+| frontend/*.md | `apps/web` | User's web directory |
+| mobile/*.md | `apps/mobile` | User's mobile directory |
+| mobile/*.md | `  - shared/` | `  - {mobile_dir}/shared/` |
+| mobile/*.md | `  - build-logic/` | `  - {mobile_dir}/build-logic/` |
+| infrastructure/tooling.md | `apps/api` (in body) | User's API directory |
+| infrastructure/tooling.md | `apps/web` (in body) | User's web directory |
+
+```python
+# Backend rules: path in frontmatter + no body paths
+content = content.replace("apps/api", user_api_dir)
+
+# Frontend rules: path in frontmatter + no body paths
+content = content.replace("apps/web", user_web_dir)
+
+# Mobile rules: multi-path frontmatter + body references
+content = content.replace("apps/mobile", user_mobile_dir)
+content = content.replace("  - shared/", f"  - {user_mobile_dir}/shared/")
+content = content.replace("  - build-logic/", f"  - {user_mobile_dir}/build-logic/")
+
+# Infrastructure tooling.md: body content has apps/api and apps/web references
+content = content.replace("apps/api", user_api_dir)
+content = content.replace("apps/web", user_web_dir)
+```
+
+**Note:** Even if the user's directory matches the default (e.g., `apps/web`), always
+run the replacement -- it's a no-op when paths match and prevents silent failures when
+they don't.
 
 #### Ecosystem-Selective Stripping
 
@@ -141,6 +252,74 @@ If only Node.js is selected (no JVM):
 - In `Taskfile.yml`: remove api-related tasks (setup:api, dev:api, test:api, lint:api, build:api)
 
 Claude handles this stripping during the copy phase by reading the template, removing irrelevant sections, then writing.
+
+### Step 4.5: Aspirational Pattern Compatibility Check
+
+After copying and customizing rules, scan the codebase for key patterns referenced in
+the installed rules. This identifies which rules describe patterns the project already
+uses vs. patterns it should aspire to.
+
+#### Patterns to Check
+
+| Rule File | Pattern | How to Check |
+|-----------|---------|-------------|
+| backend/api-patterns.md | `ApiResult<T>` | grep for `ApiResult` in `{api_dir}/**/*.kt` |
+| backend/api-patterns.md | `/api/v1/` URL prefix | grep for `/api/v1/` in `{api_dir}/**/*.kt` |
+| backend/error-handling.md | `ProblemDetail` (RFC 9457) | grep for `ProblemDetail` in `{api_dir}/**/*.kt` |
+| frontend/state-management.md | Zustand | check `{web_dir}/package.json` for `"zustand"` |
+| frontend/component-patterns.md | clsx | check `{web_dir}/package.json` for `"clsx"` |
+
+#### Presenting Results
+
+```
+## Aspirational Pattern Compatibility
+
+| Rule | Pattern | Status |
+|------|---------|--------|
+| api-patterns.md | ApiResult<T> | NOT FOUND -- project uses ResponseEntity |
+| api-patterns.md | /api/v1/ prefix | NOT FOUND -- project uses /api/{module} |
+| error-handling.md | ProblemDetail | NOT FOUND -- project uses ErrorResponse |
+| state-management.md | Zustand | NOT FOUND -- not in package.json |
+| component-patterns.md | clsx | FOUND in package.json |
+
+Rules marked NOT FOUND describe aspirational patterns. They include a
+"Standard note" indicating this. No action needed unless you want to:
+  1. Keep as-is (aspirational -- guides new code toward the standard)
+  2. Adapt the rule content to match your current patterns
+  3. Remove the rule for now
+```
+
+AskUserQuestion: For each NOT FOUND pattern, let user choose: Keep (aspirational),
+Adapt (user will edit), or Remove.
+
+If user chooses "Remove" for any rule, delete the copied file. If "Adapt", leave
+the file and note it for manual editing.
+
+### Step 4.6: Source File Installation
+
+When key patterns are NOT FOUND and the user chose "Keep (aspirational)", proactively
+offer to install source template files that implement the pattern:
+
+```
+AskUserQuestion:
+  "ApiResult.kt is available as a source template. Want to install it into
+   your project at {api_dir}/shared/api/ApiResult.kt?"
+  Options: Install / Skip
+```
+
+Available source templates:
+
+| Source Template | Pattern It Implements | Install Location |
+|----------------|----------------------|-----------------|
+| `templates/source-files/backend/ApiResult.kt` | `ApiResult<T>`, `PagedApiResult<T>` | `{api_dir}/{base_package}/shared/api/ApiResult.kt` |
+
+When installing source files:
+1. Read the template from `templates/source-files/`
+2. Replace `{{API_PACKAGE}}` with the project's base package (detect from existing
+   `.kt` files using `package` declaration, or ask via AskUserQuestion)
+3. Write to the appropriate location in the project
+4. Note: `ApiResult.kt` provides response wrappers only. Error handling uses
+   `ProblemDetail` (RFC 9457) -- see `error-handling.md` rule.
 
 ### Step 5: Post-Bootstrap
 
@@ -165,13 +344,20 @@ Claude handles this stripping during the copy phase by reading the template, rem
      web_dir: apps/web
      mobile_dir: apps/mobile
      shared_dir: shared
+   accepted_deviations:
+     - lefthook.yml
+     - Taskfile.yml
    ---
 
    # Devtools Local Configuration
 
    Stores local configuration for the devtools plugin coding-standards skill.
-   This file contains machine-local paths — do not commit to version control.
+   This file contains machine-local paths -- do not commit to version control.
    ```
+
+   Record any configs the user chose to "skip" or that are expected to differ
+   (path-customized configs) as accepted deviations. These are counted as "pass"
+   in compliance scoring.
 
 4. Add `.claude/devtools.local.md` to `.gitignore` if not already present.
 
@@ -185,8 +371,22 @@ Claude handles this stripping during the copy phase by reading the template, rem
    | Configs | 5 | 5 |
    | Hooks | 2 | 2 |
 
-   Compliance: 100%
+   Compliance: 100% (scoped to active ecosystems)
    ```
+
+6. Validate rule paths point to existing directories:
+
+   The detection script includes `rule_path_warnings` in its output.
+   If any warnings exist, present them:
+
+   ```
+   ⚠ Rule path warnings:
+   | Rule | Path Pattern | Base Dir | Exists? |
+   |------|-------------|----------|---------|
+   | backend/architecture.md | apps/backend/** | apps/backend | No |
+   ```
+
+   If warnings found, offer to fix paths interactively via AskUserQuestion.
 
 ---
 
@@ -195,9 +395,9 @@ Claude handles this stripping during the copy phase by reading the template, rem
 ### Step 1: Load Configuration
 
 Read `.claude/devtools.local.md` for:
-- `coding_standards_path` — where to find templates
-- `project_paths` — for TODO marker replacement on new files
-- `ecosystems` — which categories are relevant
+- `coding_standards_path` -- where to find templates
+- `project_paths` -- for TODO marker replacement on new files
+- `ecosystems` -- which categories are relevant
 
 ### Step 2: Show Comparison
 
@@ -234,18 +434,55 @@ AskUserQuestion (multiSelect: true):
 
 For modified files, use Read tool to show both versions before user decides.
 
+### Step 3.5: Rule Overlap Detection (same as Bootstrap Step 3)
+
+When installing new or updated rules, check for existing project-specific rules
+in the same category. Apply the same overlap detection logic from Bootstrap Step 3:
+
+- If an existing project-specific rule covers the same domain, present options:
+  Coexist / Skip / Merge
+- This is especially important during major template upgrades (e.g., v1 to v2)
+  where many rules change at once
+
 ### Step 4: Apply Updates
 
 - New files: copy with TODO replacement using stored project_paths
 - Modified files: replace with new template content (user confirmed after seeing diff)
-- Apply same TODO marker substitutions as bootstrap
+- Apply same TODO marker substitutions as bootstrap (both config and rule path substitution)
+- Apply monorepo config deduplication checks (same as Bootstrap Step 3 Configs section)
+- Respect `accepted_deviations` from `devtools.local.md` -- don't flag these as needing update
 
-### Step 5: Update Timestamp
+### Step 4.5: Aspirational Pattern Check + Source File Install
 
-Update `.claude/devtools.local.md` frontmatter:
-```yaml
-last_update: 2026-04-04
-```
+Run the same aspirational pattern compatibility check as Bootstrap Step 4.5:
+
+1. Scan the codebase for key patterns referenced in installed/updated rules
+2. Present the compatibility report
+3. For NOT FOUND patterns, offer: Keep (aspirational) / Adapt / Remove
+4. If ApiResult.kt pattern is NOT FOUND, offer to install source template
+
+This step is important when updating from templates that didn't have
+`standard_type: aspirational` to ones that do -- it gives the user a chance to
+understand and act on the aspiration vs. reality gap.
+
+### Step 5: Post-Update
+
+1. Update `.claude/devtools.local.md` frontmatter:
+   ```yaml
+   last_update: 2026-04-04
+   ```
+
+2. Add `accepted_deviations` to `devtools.local.md` if not already present:
+   ```yaml
+   accepted_deviations:
+     - lefthook.yml
+     - Taskfile.yml
+   ```
+   Record any configs the user chose to skip during this update.
+
+3. Validate rule paths (same as Bootstrap Step 5.6):
+   Check `rule_path_warnings` from detector output. If warnings found,
+   offer to fix paths interactively.
 
 ---
 
@@ -260,7 +497,9 @@ Use the `comparison` and `compliance` sections from detector output. No files ar
 ```
 ## Coding Standards Audit
 
-Compliance: 12/14 rules, 3/5 configs, 1/2 hooks — 76%
+Compliance: 12/14 rules, 3/5 configs, 1/2 hooks -- 76%
+(Scoped to active ecosystems: jvm, node. 7 mobile rules excluded.
+ Accepted deviations: lefthook.yml, Taskfile.yml counted as pass.)
 
 ### Rules
 | File | Category | Status |

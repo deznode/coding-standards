@@ -1,8 +1,13 @@
 ---
 paths: apps/web/**
+standard_type: aspirational
 ---
 
 # Styling with Tailwind CSS 4
+
+> **Standard note:** This rule describes the _target_ coding standard. The project may
+> currently use different patterns. When editing existing code, follow the patterns
+> established in the codebase. When writing new code, prefer these patterns.
 
 > Full reference: `docs/frontend/04-styling.md`
 

@@ -2,9 +2,14 @@
 paths:
   - shared/**
   - apps/mobile/**
+standard_type: aspirational
 ---
 
 # Kotlin Multiplatform Conventions
+
+> **Standard note:** This rule describes the _target_ coding standard. The project may
+> currently use different patterns. When editing existing code, follow the patterns
+> established in the codebase. When writing new code, prefer these patterns.
 
 > Full reference: `docs/mobile/04-kotlin-conventions.md`
 

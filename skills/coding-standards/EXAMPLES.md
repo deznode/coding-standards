@@ -60,6 +60,74 @@ Taskfile.yml
 
 ---
 
+## Example 1b: Full-Stack Monorepo (Non-Default Paths)
+
+**Scenario**: Polyglot monorepo with `apps/backend` (not `apps/api`),
+`apps/web`, and `apps/android` (KMP project with nested shared/).
+
+**Detection output** (key fields):
+```json
+{
+  "standards_repo": {"found": true, "template_count": 29},
+  "devtools_local": null,
+  "ecosystems": [
+    {"ecosystem": "jvm", "build_tool": "gradle-kotlin", "root": "apps/backend"},
+    {"ecosystem": "node", "root": "apps/web"},
+    {"ecosystem": "kmp", "root": "apps/android"}
+  ],
+  "compliance": {"total_installed": 0, "total": 29, "score_percent": 0}
+}
+```
+
+**User interaction**:
+```
+Q: Which rule categories should we install?
+A: [x] Backend (8 rules)  [x] Frontend (5 rules)  [x] Mobile (7 rules)  [x] Infrastructure (2 rules)
+
+Q: API directory path?
+A: apps/backend
+
+Q: Web directory path?
+A: apps/web (default)
+
+Q: Mobile app directory path?
+A: apps/android
+```
+
+**Key differences from Example 1**:
+- Backend dir is `apps/backend` not `apps/api` -- all backend rule `paths:` updated to `apps/backend/**`
+- Mobile dir is `apps/android` not `apps/mobile` -- mobile rule paths updated accordingly
+- Shared module at `apps/android/shared/` not root `shared/` -- mobile shared paths prefixed
+- `apps/web/` already has `.prettierrc` and `eslint.config.mjs` -- root copies skipped with note
+
+**Rule path substitution applied**:
+```
+backend/*.md:    paths: apps/api/**     →  paths: apps/backend/**
+frontend/*.md:   paths: apps/web/**     →  (unchanged -- default matches)
+mobile/*.md:     - apps/mobile/**       →  - apps/android/**
+mobile/*.md:     - shared/**            →  - apps/android/shared/**
+mobile/*.md:     - build-logic/**       →  - apps/android/build-logic/**
+infrastructure/tooling.md: apps/api/**  →  apps/backend/** (in body)
+```
+
+**Aspirational pattern check** (Step 4.5):
+```
+| Rule                   | Pattern        | Status                            |
+|------------------------|----------------|-----------------------------------|
+| api-patterns.md        | ApiResult<T>   | NOT FOUND -- uses ResponseEntity    |
+| error-handling.md      | ProblemDetail  | FOUND                             |
+| state-management.md    | Zustand        | FOUND in package.json             |
+| component-patterns.md  | clsx           | FOUND in package.json             |
+```
+
+User chose "Keep (aspirational)" for api-patterns.md, then accepted offer to install `ApiResult.kt`.
+
+**Result**: 22 rules + 3 configs + 2 hooks installed.
+Root `.prettierrc` and `eslint.config.mjs` skipped (app-level configs exist).
+Compliance: 100% (ecosystem-filtered, accepted deviations tracked).
+
+---
+
 ## Example 2: Backend-Only Bootstrap
 
 **Scenario**: Kotlin Spring Boot project with no frontend.
@@ -146,7 +214,7 @@ A: [x] Add backend/error-handling.md  [x] Update backend/testing-patterns.md
 ```
 ## Coding Standards Audit
 
-Compliance: 12/14 rules, 3/5 configs, 1/2 hooks — 76%
+Compliance: 12/14 rules, 3/5 configs, 1/2 hooks -- 76%
 
 ### Rules
 | File | Category | Status |

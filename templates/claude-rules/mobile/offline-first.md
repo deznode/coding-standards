@@ -2,9 +2,14 @@
 paths:
   - shared/**/data/**
   - "**/sync/**"
+standard_type: aspirational
 ---
 
 # Offline-First Architecture
+
+> **Standard note:** This rule describes the _target_ coding standard. The project may
+> currently use different patterns. When editing existing code, follow the patterns
+> established in the codebase. When writing new code, prefer these patterns.
 
 > Full reference: `docs/mobile/05-offline-first.md`
 
