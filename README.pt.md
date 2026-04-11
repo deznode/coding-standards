@@ -2,7 +2,7 @@
 
 # Deznode Coding Standards
 
-![Deznode Coding Standards](assets/hero/hero-wb-toolbelt-v2_0_20260406_121046.jpg)
+![Deznode Coding Standards](assets/hero/hero.jpg)
 
 Normas de desenvolvimento, configuracoes de ferramentas e fluxos de trabalho para projetos deznode. Este repositorio fornece documentacao reutilizavel, templates de configuracao e regras para Claude Code, para iniciar novos projetos.
 
